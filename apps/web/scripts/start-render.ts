@@ -1,3 +1,4 @@
+import path from "node:path";
 import { spawn } from "node:child_process";
 import { getAppConfig, logEvent } from "@repo/shared";
 
@@ -31,9 +32,11 @@ if (config.llm.enabled) {
   );
 }
 
+const nextBinary = path.resolve(process.cwd(), "node_modules/.bin/next");
+
 const child = spawn(
-  "pnpm",
-  ["exec", "next", "start", "--hostname", "0.0.0.0", "--port", port],
+  nextBinary,
+  ["start", "--hostname", "0.0.0.0", "--port", port],
   {
     env: process.env,
     stdio: "inherit",
