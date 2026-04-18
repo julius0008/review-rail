@@ -119,6 +119,8 @@ const envSchema = z.object({
   LLM_MAX_SNIPPET_LINES: z.string().optional(),
   LLM_CONFIDENCE_THRESHOLD: z.string().optional(),
   DEBUG_LLM_UI: z.string().optional(),
+  REVIEW_RAIL_AUTO_PUBLISH: z.string().optional(),
+  REVIEW_RAIL_BLOCKING_MODE: z.string().optional(),
 });
 
 export type AppConfig = {
@@ -149,6 +151,10 @@ export type AppConfig = {
   debug: {
     llmUi: boolean;
   };
+  reviewRail: {
+    autoPublish: boolean;
+    blockingMode: "high_signal";
+  };
 };
 
 let cachedConfig: AppConfig | null = null;
@@ -172,6 +178,14 @@ export function getAppConfig(): AppConfig {
   if (llmEnabled && llmProvider !== "ollama") {
     throw new Error(
       `Unsupported LLM_PROVIDER "${llmProvider}". Only "ollama" is currently supported.`
+    );
+  }
+
+  const blockingMode = env.REVIEW_RAIL_BLOCKING_MODE ?? "high_signal";
+
+  if (blockingMode !== "high_signal") {
+    throw new Error(
+      `Unsupported REVIEW_RAIL_BLOCKING_MODE "${blockingMode}". Only "high_signal" is currently supported.`
     );
   }
 
@@ -202,6 +216,10 @@ export function getAppConfig(): AppConfig {
     },
     debug: {
       llmUi: parseBoolean(env.DEBUG_LLM_UI, false),
+    },
+    reviewRail: {
+      autoPublish: parseBoolean(env.REVIEW_RAIL_AUTO_PUBLISH, true),
+      blockingMode: "high_signal",
     },
   };
 

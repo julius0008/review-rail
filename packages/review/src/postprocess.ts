@@ -10,6 +10,7 @@ export type RawFinding = {
   actionableFix?: string | null;
   source: string;
   ruleId?: string | null;
+  fingerprint?: string;
   publish: boolean;
   origin?: "deterministic" | "llm";
   metadata?: Record<string, unknown> | null;
@@ -148,6 +149,7 @@ export function processFindings(findings: RawFinding[]): RawFinding[] {
     ...finding,
     severity: normalizeSeverity(finding.severity),
     ruleId: finding.ruleId ?? null,
+    fingerprint: finding.fingerprint,
     origin: finding.origin ?? "deterministic",
     metadata: finding.metadata ?? null,
   }));

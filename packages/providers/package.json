@@ -5,6 +5,9 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/queue": "workspace:*",
+    "@repo/review": "workspace:*",
     "@repo/shared": "workspace:*",
     "@octokit/auth-app": "^7.2.2",
     "octokit": "^4.1.4"

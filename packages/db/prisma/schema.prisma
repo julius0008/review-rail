@@ -153,6 +153,8 @@ model ReviewPublication {
   reviewRunId     String
   githubReviewId  String?
   status          String
+  reviewEvent     String?
+  commentsCount   Int      @default(0)
   requestKey      String?
   body            String?
   submittedAt     DateTime?

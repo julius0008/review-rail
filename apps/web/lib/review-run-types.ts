@@ -1,4 +1,30 @@
-export type DashboardRunDto = {
+export type ReviewOutcome =
+  | "running"
+  | "blocking"
+  | "comment_only"
+  | "clean"
+  | "failed";
+
+export type ReviewDeltaDto = {
+  newFindings: number;
+  resolvedFindings: number;
+  persistentFindings: number;
+};
+
+export type ReviewPublicationSummaryDto = {
+  id: string;
+  githubReviewId: string | null;
+  status: string;
+  reviewEvent: string | null;
+  commentsCount: number;
+  requestKey: string | null;
+  body: string | null;
+  submittedAt: string | null;
+  error: string | null;
+  createdAt: string;
+};
+
+export type DashboardHistoryRunDto = {
   id: string;
   repoId: string;
   prNumber: number;
@@ -7,28 +33,22 @@ export type DashboardRunDto = {
   status: string;
   llmStatus: string;
   publishState: string;
-  error: string | null;
+  reviewOutcome: ReviewOutcome;
+  mergeBlockReason: string | null;
+  pullRequestUrl: string;
   createdAt: string;
   updatedAt: string;
   counts: {
-    files: number;
     findings: number;
-    commentCandidates: number;
-    commentPreviews: number;
+    blockingFindings: number;
+    publishedComments: number;
   };
+  lastPublication: ReviewPublicationSummaryDto | null;
 };
 
 export type DashboardRunsSnapshot = {
-  runs: DashboardRunDto[];
-  latestRun: DashboardRunDto | null;
-  summary: {
-    totalRuns: number;
-    completedRuns: number;
-    failedRuns: number;
-    totalFindings: number;
-    publishReadyRuns: number;
-    llmAugmentedRuns: number;
-  };
+  currentRun: ReviewRunDetailDto | null;
+  history: DashboardHistoryRunDto[];
 };
 
 export type ChangedFileDto = {
@@ -97,17 +117,6 @@ export type ReviewCommentPreviewDto = {
   createdAt: string;
 };
 
-export type ReviewPublicationDto = {
-  id: string;
-  githubReviewId: string | null;
-  status: string;
-  requestKey: string | null;
-  body: string | null;
-  submittedAt: string | null;
-  error: string | null;
-  createdAt: string;
-};
-
 export type ReviewRunDetailDto = {
   id: string;
   repoId: string;
@@ -119,6 +128,9 @@ export type ReviewRunDetailDto = {
   status: string;
   llmStatus: string;
   publishState: string;
+  reviewOutcome: ReviewOutcome;
+  mergeBlockReason: string | null;
+  pullRequestUrl: string;
   error: string | null;
   llmError: string | null;
   llmSummary: string | null;
@@ -128,10 +140,13 @@ export type ReviewRunDetailDto = {
   startedAt: string | null;
   completedAt: string | null;
   publishedAt: string | null;
+  delta: ReviewDeltaDto | null;
+  publishedPreviewIds: string[];
+  lastPublication: ReviewPublicationSummaryDto | null;
   files: ChangedFileDto[];
   findings: ReviewFindingDto[];
   commentCandidates: ReviewCommentCandidateDto[];
   commentPreviews: ReviewCommentPreviewDto[];
-  publications: ReviewPublicationDto[];
+  publications: ReviewPublicationSummaryDto[];
   showVerboseLlmDebug: boolean;
 };

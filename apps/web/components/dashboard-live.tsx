@@ -5,30 +5,37 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardRunsSnapshot } from "@/lib/review-run-types";
 import {
-  getDashboardRunIds,
-  getReviewRunPath,
-  getStatusStepClass,
   formatDateTime,
+  formatReviewEventLabel,
+  getDashboardRunIds,
+  getDisplayFindingTitle,
+  getReviewRunPath,
+  getTopFindings,
   LlmPill,
   PublishPill,
+  ReviewOutcomePill,
+  severityBadgeClass,
   StatusPill,
 } from "./review-ui";
+import { ObserverShell } from "./observer-shell";
 import {
   type LiveConnectionState,
   useLiveSnapshot,
 } from "./use-live-snapshot";
 
 function liveIndicatorClass(state: LiveConnectionState) {
-  if (state === "live") return "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30";
-  if (state === "reconnecting") return "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30";
-  if (state === "polling") return "bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/30";
-  return "bg-white/8 text-zinc-300 ring-1 ring-white/10";
+  if (state === "live") return "bg-emerald-500/12 text-emerald-200 ring-1 ring-emerald-400/25";
+  if (state === "reconnecting") {
+    return "bg-amber-500/12 text-amber-200 ring-1 ring-amber-400/25";
+  }
+  if (state === "polling") return "bg-sky-500/12 text-sky-200 ring-1 ring-sky-400/25";
+  return "bg-white/6 text-slate-300 ring-1 ring-white/8";
 }
 
 function liveIndicatorLabel(state: LiveConnectionState) {
   if (state === "live") return "Live";
   if (state === "reconnecting") return "Reconnecting";
-  if (state === "polling") return "Polling fallback";
+  if (state === "polling") return "Polling";
   return "Connecting";
 }
 
@@ -45,10 +52,10 @@ export function DashboardLive({ initialSnapshot }: Props) {
     pollIntervalMs: 5000,
   });
   const [highlightedRunIds, setHighlightedRunIds] = useState<string[]>([]);
-  const previousRunIds = useRef(getDashboardRunIds(initialSnapshot.runs));
+  const previousRunIds = useRef(getDashboardRunIds(initialSnapshot.history));
 
   useEffect(() => {
-    const currentIds = getDashboardRunIds(data.runs);
+    const currentIds = getDashboardRunIds(data.history);
     const previousIds = new Set(previousRunIds.current);
     const newIds = currentIds.filter((runId) => !previousIds.has(runId));
 
@@ -66,188 +73,377 @@ export function DashboardLive({ initialSnapshot }: Props) {
     }
 
     previousRunIds.current = currentIds;
-  }, [data.runs]);
+  }, [data.history]);
 
-  const { latestRun, runs, summary } = data;
+  const currentRun = data.currentRun;
+  const topFindings = currentRun ? getTopFindings(currentRun.findings) : [];
+  const suppressedCandidates = currentRun
+    ? currentRun.commentCandidates.filter((candidate) => !candidate.isPublishable).length
+    : 0;
+  const blockingFindingsCount = currentRun
+    ? currentRun.findings.filter(
+        (finding) =>
+          finding.publishReason === "publishable_high_signal" ||
+          finding.publishReason === "publishable_llm_high_confidence"
+      ).length
+    : 0;
+  const invalidPreviews = currentRun
+    ? currentRun.commentPreviews.filter((preview) => !preview.isValid).length
+    : 0;
+  const publishedComments = currentRun?.lastPublication?.commentsCount ?? 0;
 
   return (
-    <main className="min-h-screen text-zinc-100">
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="glass-panel relative overflow-hidden rounded-[2rem] px-7 py-8 sm:px-10 sm:py-10">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="mb-3 text-xs uppercase tracking-[0.32em] text-cyan-200/80">
-                Review Rail
-              </p>
-              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Deterministic pull request review, with optional local-first LLM augmentation.
-              </h1>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">
-                GitHub App webhooks create review runs, the worker snapshots changed files, runs
-                Biome and Semgrep first, and then optionally enriches only the highest-signal hunks
-                with Ollama. The baseline pipeline stays healthy even when LLM review is disabled.
-              </p>
-            </div>
+    <ObserverShell
+      eyebrow="Observer workspace"
+      title="Active review intelligence"
+      description={
+        <>
+          Observer writes the routine review back into GitHub, then keeps the deeper context here:
+          why merge is blocked, what actually got posted, what GitHub could not anchor, and how
+          this run changed from the previous one.
+        </>
+      }
+      connectionState={connectionState}
+      headerActions={
+        <span
+          className={`rounded-full px-3 py-2 text-xs font-medium ${liveIndicatorClass(
+            connectionState
+          )}`}
+        >
+          {liveIndicatorLabel(connectionState)}
+        </span>
+      }
+    >
+      {currentRun ? (
+        <>
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_380px]">
+            <div className="observer-panel rounded-[1.75rem] p-6 sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-slate-300">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {currentRun.repoId}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      PR #{currentRun.prNumber}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono">
+                      {currentRun.headSha.slice(0, 8)}
+                    </span>
+                  </div>
 
-            <div
-              className={`inline-flex w-fit items-center rounded-full px-3 py-2 text-xs font-medium ${liveIndicatorClass(
-                connectionState
-              )}`}
-            >
-              {liveIndicatorLabel(connectionState)}
-            </div>
-          </div>
+                  <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">
+                    {currentRun.title ?? "Current pull request"}
+                  </h2>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
-              <p className="text-sm text-slate-300">Tracked runs</p>
-              <p className="mt-2 text-3xl font-semibold">{summary.totalRuns}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
-              <p className="text-sm text-slate-300">Publish-ready</p>
-              <p className="mt-2 text-3xl font-semibold">{summary.publishReadyRuns}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
-              <p className="text-sm text-slate-300">LLM-augmented</p>
-              <p className="mt-2 text-3xl font-semibold">{summary.llmAugmentedRuns}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
-              <p className="text-sm text-slate-300">Failed runs</p>
-              <p className="mt-2 text-3xl font-semibold">{summary.failedRuns}</p>
-            </div>
-          </div>
-        </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <ReviewOutcomePill outcome={currentRun.reviewOutcome} />
+                    <StatusPill status={currentRun.status} />
+                    <PublishPill state={currentRun.publishState} />
+                    <LlmPill status={currentRun.llmStatus} />
+                  </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-[1.5fr_1fr]">
-          <div className="glass-panel rounded-[1.75rem] p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Pipeline posture</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-300">
-                  {summary.totalRuns === 0
-                    ? "No review runs yet. Open or update a pull request to start the pipeline."
-                    : `Processed ${summary.totalRuns} runs, captured ${summary.totalFindings} findings, and completed ${summary.completedRuns} full review cycles so far.`}
-                </p>
+                  <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-300">
+                    {currentRun.mergeBlockReason ??
+                      (currentRun.reviewOutcome === "clean"
+                        ? "Observer does not see merge-blocking issues in the latest run."
+                        : currentRun.reviewOutcome === "comment_only"
+                          ? "Observer found follow-up items worth reading, but they are not strong enough to block merge."
+                          : currentRun.error ?? "Observer is still processing this run.")}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={currentRun.pullRequestUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 hover:border-white/20 hover:bg-white/8"
+                  >
+                    Open PR
+                  </a>
+                  <Link
+                    href={getReviewRunPath(currentRun.id)}
+                    className="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-100 hover:border-sky-300/30 hover:bg-sky-500/14"
+                  >
+                    Open full run
+                  </Link>
+                </div>
               </div>
-              {latestRun && <StatusPill status={latestRun.status} />}
-            </div>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["queued", "fetching", "analyzing", "postprocessing", "llm_pending", "publish_ready", "completed"].map((step) => (
-                <div
-                  key={step}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide ${getStatusStepClass(
-                    latestRun?.status ?? "queued",
-                    step
-                  )}`}
-                >
-                  {step}
+              <div className="mt-6 grid gap-3 md:grid-cols-4">
+                <div className="observer-subtle-panel rounded-2xl p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Blocking
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">
+                    {blockingFindingsCount}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-400">Findings driving merge policy</div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-[1.75rem] p-6">
-            <h2 className="text-xl font-semibold text-white">Latest run</h2>
-            {latestRun ? (
-              <>
-                <p className="mt-1 text-sm text-slate-300">
-                  {latestRun.repoId} PR #{latestRun.prNumber}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <StatusPill status={latestRun.status} />
-                  <PublishPill state={latestRun.publishState} />
-                  <LlmPill status={latestRun.llmStatus} />
+                <div className="observer-subtle-panel rounded-2xl p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Published
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">{publishedComments}</div>
+                  <div className="mt-1 text-sm text-slate-400">Inline comments sent to GitHub</div>
                 </div>
-                <p className="mt-5 text-sm text-slate-300">
-                  Created {formatDateTime(latestRun.createdAt)} with {latestRun.counts.findings} stored findings.
-                </p>
-              </>
-            ) : (
-              <p className="mt-3 text-sm text-slate-300">No runs have been captured yet.</p>
-            )}
-          </div>
-        </div>
+                <div className="observer-subtle-panel rounded-2xl p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Suppressed
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">
+                    {suppressedCandidates}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-400">Held back from PR noise</div>
+                </div>
+                <div className="observer-subtle-panel rounded-2xl p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Invalid anchors
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold text-white">
+                    {invalidPreviews}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-400">Comments GitHub could not place</div>
+                </div>
+              </div>
 
-        <div className="mt-8 glass-panel rounded-[1.75rem] p-6">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Recent review runs</h2>
-              <p className="mt-1 text-sm text-slate-300">
-                Inspect deterministic findings, optional Ollama augmentation, review payload previews, and publication history.
-              </p>
-            </div>
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
-              Queue-backed PR review pipeline
-            </div>
-          </div>
+              {currentRun.delta ? (
+                <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium text-white">What changed since the last run</div>
+                      <div className="mt-1 text-sm text-slate-400">
+                        Useful when the PR comments alone do not tell you whether the branch is
+                        trending in the right direction.
+                      </div>
+                    </div>
+                    <div className="grid min-w-full gap-3 sm:min-w-[360px] sm:grid-cols-3">
+                      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-emerald-200/80">
+                          Resolved
+                        </div>
+                        <div className="mt-2 text-2xl font-semibold text-white">
+                          {currentRun.delta.resolvedFindings}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-amber-100/80">
+                          New
+                        </div>
+                        <div className="mt-2 text-2xl font-semibold text-white">
+                          {currentRun.delta.newFindings}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                          Persistent
+                        </div>
+                        <div className="mt-2 text-2xl font-semibold text-white">
+                          {currentRun.delta.persistentFindings}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
-          <div className="space-y-3">
-            {runs.map((run) => (
-              <Link
-                key={run.id}
-                href={getReviewRunPath(run.id)}
-                prefetch={false}
-                onMouseEnter={() => {
-                  router.prefetch(getReviewRunPath(run.id));
-                }}
-                onFocus={() => {
-                  router.prefetch(getReviewRunPath(run.id));
-                }}
-                className={`block rounded-3xl border border-white/10 bg-slate-950/60 p-5 transition hover:border-cyan-300/30 hover:bg-slate-950/80 ${
-                  highlightedRunIds.includes(run.id) ? "run-row-highlight" : ""
-                }`}
-              >
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
+                <div className="flex items-end justify-between gap-3">
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-medium text-white">{run.repoId}</div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-300">
-                        PR #{run.prNumber}
-                      </span>
-                    </div>
-
+                    <div className="text-sm font-medium text-white">Top findings right now</div>
                     <div className="mt-1 text-sm text-slate-400">
-                      Head {run.headSha.slice(0, 8)} · {run.counts.files} files · {run.counts.findings} findings
+                      The short list worth reading before you open the full run.
                     </div>
-
-                    {run.title && (
-                      <div className="mt-3 max-w-2xl text-sm text-slate-300">
-                        {run.title}
-                      </div>
-                    )}
-
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                      <span>{run.counts.commentCandidates} draft comments</span>
-                      <span>{run.counts.commentPreviews} payload previews</span>
-                      <span>Created {formatDateTime(run.createdAt)}</span>
-                    </div>
-
-                    {run.error && (
-                      <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                        {run.error}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
-                    <StatusPill status={run.status} />
-                    <PublishPill state={run.publishState} />
-                    <LlmPill status={run.llmStatus} />
                   </div>
                 </div>
-              </Link>
-            ))}
 
-            {runs.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-white/10 p-10 text-center text-slate-400">
-                No review runs yet.
+                {topFindings.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {topFindings.map((finding) => (
+                      <div
+                        key={finding.id}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs ${severityBadgeClass(
+                              finding.severity
+                            )}`}
+                          >
+                            {finding.severity}
+                          </span>
+                          <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-300">
+                            {finding.path}
+                          </span>
+                          <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-300">
+                            line {finding.lineStart}
+                          </span>
+                        </div>
+                        <div className="mt-3 text-sm font-semibold text-white">
+                          {getDisplayFindingTitle(
+                            finding.title,
+                            finding.ruleId,
+                            finding.explanation
+                          )}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-300">{finding.explanation}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
+                    No findings in the latest run.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            <div className="space-y-6">
+              <div className="observer-panel rounded-[1.75rem] p-6">
+                <div className="observer-kicker">Published review</div>
+                {currentRun.lastPublication ? (
+                  <>
+                    <div className="mt-4 text-2xl font-semibold text-white">
+                      {formatReviewEventLabel(currentRun.lastPublication.reviewEvent)}
+                    </div>
+                    <div className="mt-2 text-sm text-slate-300">
+                      {currentRun.lastPublication.commentsCount} inline comment
+                      {currentRun.lastPublication.commentsCount === 1 ? "" : "s"} ·{" "}
+                      {currentRun.lastPublication.status}
+                    </div>
+                    <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                        Last published
+                      </div>
+                      <div className="mt-2 text-sm text-slate-300">
+                        {formatDateTime(currentRun.lastPublication.createdAt)}
+                      </div>
+                      {currentRun.lastPublication.error ? (
+                        <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                          {currentRun.lastPublication.error}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4 text-sm leading-7 text-slate-400">
+                    Observer has not posted a GitHub review yet. Clean runs can stay quiet unless
+                    they need to clear an earlier blocking review.
+                  </div>
+                )}
+              </div>
+
+              <div className="observer-panel rounded-[1.75rem] p-6">
+                <div className="observer-kicker">Why open Observer</div>
+                <div className="mt-4 space-y-3 text-sm text-slate-300">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    See the exact merge-block reason instead of inferring it from scattered inline
+                    comments.
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    Separate published findings from suppressed or unanchorable ones.
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    Track whether the latest push resolved real issues or just moved them around.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="history" className="mt-6 observer-panel rounded-[1.75rem] p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="observer-kicker">Recent history</div>
+                <h3 className="mt-3 text-xl font-semibold text-white">Past runs at a glance</h3>
+                <div className="mt-1 text-sm text-slate-400">
+                  Enough history to understand trend and publication behavior without turning the
+                  homepage into an operations dashboard.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {data.history.slice(0, 10).map((run) => {
+                const runPath = getReviewRunPath(run.id);
+                const highlighted = highlightedRunIds.includes(run.id);
+
+                return (
+                  <Link
+                    key={run.id}
+                    href={runPath}
+                    prefetch={false}
+                    onMouseEnter={() => router.prefetch(runPath)}
+                    onFocus={() => router.prefetch(runPath)}
+                    className={`block rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4 ${
+                      highlighted ? "run-row-highlight" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                          <span className="rounded-full bg-white/5 px-2 py-1">{run.repoId}</span>
+                          <span className="rounded-full bg-white/5 px-2 py-1">PR #{run.prNumber}</span>
+                          <span className="rounded-full bg-white/5 px-2 py-1 font-mono">
+                            {run.headSha.slice(0, 8)}
+                          </span>
+                        </div>
+                        <div className="mt-3 text-lg font-semibold text-white">
+                          {run.title ?? `Run ${run.id.slice(0, 8)}`}
+                        </div>
+                        <div className="mt-2 text-sm text-slate-300">
+                          {run.mergeBlockReason ??
+                            (run.reviewOutcome === "comment_only"
+                              ? "Follow-up items were published without blocking merge."
+                              : run.reviewOutcome === "clean"
+                                ? "No blocking findings remained in this run."
+                                : run.reviewOutcome === "failed"
+                                  ? "The run failed before Observer could produce a stable review."
+                                  : "Observer is still working through this run.")}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ReviewOutcomePill outcome={run.reviewOutcome} />
+                        <StatusPill status={run.status} />
+                        <PublishPill state={run.publishState} />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+                      <div className="flex flex-wrap gap-3 text-sm text-slate-400">
+                        <span>{run.counts.blockingFindings} blocking</span>
+                        <span>{run.counts.findings} total findings</span>
+                        <span>{run.counts.publishedComments} published comments</span>
+                        <span>Updated {formatDateTime(run.updatedAt)}</span>
+                      </div>
+
+                      <div className="text-sm text-slate-400">
+                        {run.lastPublication
+                          ? `${formatReviewEventLabel(run.lastPublication.reviewEvent)} · ${run.lastPublication.status}`
+                          : "No GitHub review posted"}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      ) : (
+        <section className="observer-panel rounded-[1.75rem] p-10 text-center">
+          <div className="mx-auto max-w-2xl">
+            <div className="observer-kicker">Waiting for signal</div>
+            <h2 className="mt-4 text-3xl font-semibold text-white">No active review yet</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-300">
+              Open or update a pull request in a connected repository and Observer will create a
+              run automatically, publish the review back to GitHub, and keep the deeper triage
+              context here.
+            </p>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      )}
+    </ObserverShell>
   );
 }

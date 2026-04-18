@@ -1184,6 +1184,8 @@ export const ReviewPublicationScalarFieldEnum = {
   reviewRunId: 'reviewRunId',
   githubReviewId: 'githubReviewId',
   status: 'status',
+  reviewEvent: 'reviewEvent',
+  commentsCount: 'commentsCount',
   requestKey: 'requestKey',
   body: 'body',
   submittedAt: 'submittedAt',

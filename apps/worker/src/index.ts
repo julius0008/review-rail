@@ -46,6 +46,8 @@ logEvent("worker", "info", "Worker started", {
   appUrl: config.appUrl,
   llmEnabled: config.llm.enabled,
   llmProvider: config.llm.provider,
+  autoPublish: config.reviewRail.autoPublish,
+  blockingMode: config.reviewRail.blockingMode,
 });
 
 if (config.llm.enabled) {

@@ -44,4 +44,4 @@ COPY --from=builder /app ./
 
 EXPOSE 10000
 
-CMD ["pnpm", "render:start:web"]
+CMD ["node", "scripts/start-runtime.mjs"]

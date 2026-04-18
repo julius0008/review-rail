@@ -1,5 +1,6 @@
 import type {
-  DashboardRunDto,
+  DashboardHistoryRunDto,
+  ReviewOutcome,
   ReviewFindingDto,
 } from "@/lib/review-run-types";
 
@@ -67,6 +68,26 @@ export function PublishPill({ state }: { state: string }) {
   );
 }
 
+export function ReviewOutcomePill({ outcome }: { outcome: ReviewOutcome }) {
+  const styles: Record<ReviewOutcome, string> = {
+    running: "bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/30",
+    blocking: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
+    comment_only: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30",
+    clean: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30",
+    failed: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
+  };
+
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+        styles[outcome] ?? styles.running
+      }`}
+    >
+      {formatReviewOutcomeLabel(outcome)}
+    </span>
+  );
+}
+
 export function publicationStatusClass(status: string) {
   if (status === "published") {
     return "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20";
@@ -85,6 +106,19 @@ export function publicationStatusClass(status: string) {
 
 export function publishStateClass(status: string) {
   return publicationStatusClass(status);
+}
+
+export function formatReviewOutcomeLabel(outcome: ReviewOutcome) {
+  if (outcome === "comment_only") return "comment-only";
+  return outcome.replace("_", " ");
+}
+
+export function formatReviewEventLabel(event?: string | null) {
+  if (!event) return "No GitHub review yet";
+  if (event === "REQUEST_CHANGES") return "Requested changes";
+  if (event === "APPROVE") return "Approved";
+  if (event === "COMMENT") return "Commented";
+  return event.toLowerCase().replaceAll("_", " ");
 }
 
 export function llmStatusClass(status: string) {
@@ -277,6 +311,6 @@ export function getTopFindings(findings: ReviewFindingDto[]) {
     .slice(0, 5);
 }
 
-export function getDashboardRunIds(runs: DashboardRunDto[]) {
+export function getDashboardRunIds(runs: DashboardHistoryRunDto[]) {
   return runs.map((run) => run.id);
 }

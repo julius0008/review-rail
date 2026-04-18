@@ -1,4 +1,4 @@
-# Review Rail
+# Observer
 
 Queue-backed GitHub pull request review assistant built with Next.js, TypeScript, Prisma, Redis, BullMQ, a separate worker process, and deterministic analyzers first.
 
@@ -10,15 +10,16 @@ Queue-backed GitHub pull request review assistant built with Next.js, TypeScript
 - Runs Biome and Semgrep as the primary review engine
 - Normalizes, deduplicates, scores, and prioritizes findings
 - Builds draft inline comment candidates and exact GitHub review payload previews
-- Publishes grouped GitHub pull request reviews with safer publish-state locking
+- Auto-publishes GitHub pull request reviews with safer publish-state locking
+- Uses `REQUEST_CHANGES`, `COMMENT`, and `APPROVE` review events so Observer can block and later clear its own PR reviews
 - Optionally adds a local-first Ollama review augmentation pass on top of deterministic results
-- Streams live run creation and status updates to the dashboard and run detail pages with SSE + Redis pub/sub
+- Streams live run creation and status updates to a PR-first dashboard and run detail pages with SSE + Redis pub/sub
 
 ## Architecture
 
 Core flow:
 
-`GitHub App webhook -> Next.js API -> BullMQ / Redis -> Worker -> PR snapshot -> Biome + Semgrep -> postprocessing -> preview generation -> optional Ollama enrichment -> publish-ready run -> GitHub review publish`
+`GitHub App webhook -> Next.js API -> BullMQ / Redis -> Worker -> PR snapshot -> Biome + Semgrep -> postprocessing -> preview generation -> optional Ollama enrichment -> auto-publish GitHub review`
 
 Live UI flow:
 
@@ -34,11 +35,20 @@ Main packages:
 - `packages/review`: finding normalization, publishability, summaries, payload previews, and LLM context/prompt/merge logic
 - `packages/shared`: typed config, shared schemas, statuses, and structured logging helpers
 
+## Hosted Runtime Roles
+
+The shared deployment image can start either the web service or the worker.
+
+- Set `APP_RUNTIME=web` for the public Next.js service
+- Set `APP_RUNTIME=worker` for the BullMQ consumer
+
+If `APP_RUNTIME` is unset, the image defaults to `web`.
+
 ## Runtime Model
 
 ### Reactive UI
 
-The app server-renders the first page load, then upgrades the dashboard and review detail pages to live views.
+The app server-renders the first page load, then upgrades the current-run dashboard and review detail pages to live views.
 
 - The dashboard listens for new runs and run updates through Server-Sent Events
 - The run detail page listens for updates for its specific `reviewRunId`
@@ -134,6 +144,8 @@ Important:
 - Do not commit real private keys or webhook secrets
 - The tracked `apps/web/.env.local` and `apps/worker/.env` files are placeholders only
 - `APP_URL` is required in production deployments
+- `REVIEW_RAIL_AUTO_PUBLISH=true` enables automatic PR review publishing
+- `REVIEW_RAIL_BLOCKING_MODE=high_signal` keeps merge blocking limited to high-signal findings
 
 ### 4. Run database setup
 
@@ -184,6 +196,8 @@ If Ollama is unavailable, the app still works. The run keeps its deterministic f
 - Treat Ollama as local-first, self-hosted, or optional async enrichment
 - Keep `ENABLE_LLM_REVIEW=false` by default in hosted MVP deployments unless you control the inference environment
 - `LLM_ENABLED` is supported as a deployment-friendly alias for `ENABLE_LLM_REVIEW`
+- Keep `REVIEW_RAIL_AUTO_PUBLISH=true` unless you explicitly want preview-only behavior
+- `REVIEW_RAIL_BLOCKING_MODE` currently supports `high_signal`
 - Keep `DEBUG_LLM_UI=false` in production so raw LLM responses and parse details stay out of the normal operator UI
 - Web and worker both need the same GitHub App credentials, database URL, and Redis URL
 - `docker-compose.prod.yml` includes Postgres, Redis, web, worker, and Caddy

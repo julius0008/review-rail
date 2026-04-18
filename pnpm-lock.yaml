@@ -148,6 +148,15 @@ importers:
       '@octokit/auth-app':
         specifier: ^7.2.2
         version: 7.2.2
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../db
+      '@repo/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@repo/review':
+        specifier: workspace:*
+        version: link:../review
       '@repo/shared':
         specifier: workspace:*
         version: link:../shared

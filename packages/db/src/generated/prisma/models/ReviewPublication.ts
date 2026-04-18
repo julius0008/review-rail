@@ -20,8 +20,18 @@ export type ReviewPublicationModel = runtime.Types.Result.DefaultSelection<Prism
 
 export type AggregateReviewPublication = {
   _count: ReviewPublicationCountAggregateOutputType | null
+  _avg: ReviewPublicationAvgAggregateOutputType | null
+  _sum: ReviewPublicationSumAggregateOutputType | null
   _min: ReviewPublicationMinAggregateOutputType | null
   _max: ReviewPublicationMaxAggregateOutputType | null
+}
+
+export type ReviewPublicationAvgAggregateOutputType = {
+  commentsCount: number | null
+}
+
+export type ReviewPublicationSumAggregateOutputType = {
+  commentsCount: number | null
 }
 
 export type ReviewPublicationMinAggregateOutputType = {
@@ -29,6 +39,8 @@ export type ReviewPublicationMinAggregateOutputType = {
   reviewRunId: string | null
   githubReviewId: string | null
   status: string | null
+  reviewEvent: string | null
+  commentsCount: number | null
   requestKey: string | null
   body: string | null
   submittedAt: Date | null
@@ -41,6 +53,8 @@ export type ReviewPublicationMaxAggregateOutputType = {
   reviewRunId: string | null
   githubReviewId: string | null
   status: string | null
+  reviewEvent: string | null
+  commentsCount: number | null
   requestKey: string | null
   body: string | null
   submittedAt: Date | null
@@ -53,6 +67,8 @@ export type ReviewPublicationCountAggregateOutputType = {
   reviewRunId: number
   githubReviewId: number
   status: number
+  reviewEvent: number
+  commentsCount: number
   requestKey: number
   body: number
   submittedAt: number
@@ -62,11 +78,21 @@ export type ReviewPublicationCountAggregateOutputType = {
 }
 
 
+export type ReviewPublicationAvgAggregateInputType = {
+  commentsCount?: true
+}
+
+export type ReviewPublicationSumAggregateInputType = {
+  commentsCount?: true
+}
+
 export type ReviewPublicationMinAggregateInputType = {
   id?: true
   reviewRunId?: true
   githubReviewId?: true
   status?: true
+  reviewEvent?: true
+  commentsCount?: true
   requestKey?: true
   body?: true
   submittedAt?: true
@@ -79,6 +105,8 @@ export type ReviewPublicationMaxAggregateInputType = {
   reviewRunId?: true
   githubReviewId?: true
   status?: true
+  reviewEvent?: true
+  commentsCount?: true
   requestKey?: true
   body?: true
   submittedAt?: true
@@ -91,6 +119,8 @@ export type ReviewPublicationCountAggregateInputType = {
   reviewRunId?: true
   githubReviewId?: true
   status?: true
+  reviewEvent?: true
+  commentsCount?: true
   requestKey?: true
   body?: true
   submittedAt?: true
@@ -137,6 +167,18 @@ export type ReviewPublicationAggregateArgs<ExtArgs extends runtime.Types.Extensi
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ReviewPublicationAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ReviewPublicationSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ReviewPublicationMinAggregateInputType
@@ -167,6 +209,8 @@ export type ReviewPublicationGroupByArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   _count?: ReviewPublicationCountAggregateInputType | true
+  _avg?: ReviewPublicationAvgAggregateInputType
+  _sum?: ReviewPublicationSumAggregateInputType
   _min?: ReviewPublicationMinAggregateInputType
   _max?: ReviewPublicationMaxAggregateInputType
 }
@@ -176,12 +220,16 @@ export type ReviewPublicationGroupByOutputType = {
   reviewRunId: string
   githubReviewId: string | null
   status: string
+  reviewEvent: string | null
+  commentsCount: number
   requestKey: string | null
   body: string | null
   submittedAt: Date | null
   error: string | null
   createdAt: Date
   _count: ReviewPublicationCountAggregateOutputType | null
+  _avg: ReviewPublicationAvgAggregateOutputType | null
+  _sum: ReviewPublicationSumAggregateOutputType | null
   _min: ReviewPublicationMinAggregateOutputType | null
   _max: ReviewPublicationMaxAggregateOutputType | null
 }
@@ -209,6 +257,8 @@ export type ReviewPublicationWhereInput = {
   reviewRunId?: Prisma.StringFilter<"ReviewPublication"> | string
   githubReviewId?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   status?: Prisma.StringFilter<"ReviewPublication"> | string
+  reviewEvent?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
+  commentsCount?: Prisma.IntFilter<"ReviewPublication"> | number
   requestKey?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   body?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   submittedAt?: Prisma.DateTimeNullableFilter<"ReviewPublication"> | Date | string | null
@@ -222,6 +272,8 @@ export type ReviewPublicationOrderByWithRelationInput = {
   reviewRunId?: Prisma.SortOrder
   githubReviewId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  reviewEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  commentsCount?: Prisma.SortOrder
   requestKey?: Prisma.SortOrderInput | Prisma.SortOrder
   body?: Prisma.SortOrderInput | Prisma.SortOrder
   submittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -239,6 +291,8 @@ export type ReviewPublicationWhereUniqueInput = Prisma.AtLeast<{
   reviewRunId?: Prisma.StringFilter<"ReviewPublication"> | string
   githubReviewId?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   status?: Prisma.StringFilter<"ReviewPublication"> | string
+  reviewEvent?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
+  commentsCount?: Prisma.IntFilter<"ReviewPublication"> | number
   requestKey?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   body?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   submittedAt?: Prisma.DateTimeNullableFilter<"ReviewPublication"> | Date | string | null
@@ -252,14 +306,18 @@ export type ReviewPublicationOrderByWithAggregationInput = {
   reviewRunId?: Prisma.SortOrder
   githubReviewId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  reviewEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  commentsCount?: Prisma.SortOrder
   requestKey?: Prisma.SortOrderInput | Prisma.SortOrder
   body?: Prisma.SortOrderInput | Prisma.SortOrder
   submittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.ReviewPublicationCountOrderByAggregateInput
+  _avg?: Prisma.ReviewPublicationAvgOrderByAggregateInput
   _max?: Prisma.ReviewPublicationMaxOrderByAggregateInput
   _min?: Prisma.ReviewPublicationMinOrderByAggregateInput
+  _sum?: Prisma.ReviewPublicationSumOrderByAggregateInput
 }
 
 export type ReviewPublicationScalarWhereWithAggregatesInput = {
@@ -270,6 +328,8 @@ export type ReviewPublicationScalarWhereWithAggregatesInput = {
   reviewRunId?: Prisma.StringWithAggregatesFilter<"ReviewPublication"> | string
   githubReviewId?: Prisma.StringNullableWithAggregatesFilter<"ReviewPublication"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"ReviewPublication"> | string
+  reviewEvent?: Prisma.StringNullableWithAggregatesFilter<"ReviewPublication"> | string | null
+  commentsCount?: Prisma.IntWithAggregatesFilter<"ReviewPublication"> | number
   requestKey?: Prisma.StringNullableWithAggregatesFilter<"ReviewPublication"> | string | null
   body?: Prisma.StringNullableWithAggregatesFilter<"ReviewPublication"> | string | null
   submittedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ReviewPublication"> | Date | string | null
@@ -281,6 +341,8 @@ export type ReviewPublicationCreateInput = {
   id?: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -294,6 +356,8 @@ export type ReviewPublicationUncheckedCreateInput = {
   reviewRunId: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -305,6 +369,8 @@ export type ReviewPublicationUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -318,6 +384,8 @@ export type ReviewPublicationUncheckedUpdateInput = {
   reviewRunId?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -330,6 +398,8 @@ export type ReviewPublicationCreateManyInput = {
   reviewRunId: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -341,6 +411,8 @@ export type ReviewPublicationUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -353,6 +425,8 @@ export type ReviewPublicationUncheckedUpdateManyInput = {
   reviewRunId?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -380,6 +454,8 @@ export type ReviewPublicationCountOrderByAggregateInput = {
   reviewRunId?: Prisma.SortOrder
   githubReviewId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  reviewEvent?: Prisma.SortOrder
+  commentsCount?: Prisma.SortOrder
   requestKey?: Prisma.SortOrder
   body?: Prisma.SortOrder
   submittedAt?: Prisma.SortOrder
@@ -387,11 +463,17 @@ export type ReviewPublicationCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
 }
 
+export type ReviewPublicationAvgOrderByAggregateInput = {
+  commentsCount?: Prisma.SortOrder
+}
+
 export type ReviewPublicationMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   reviewRunId?: Prisma.SortOrder
   githubReviewId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  reviewEvent?: Prisma.SortOrder
+  commentsCount?: Prisma.SortOrder
   requestKey?: Prisma.SortOrder
   body?: Prisma.SortOrder
   submittedAt?: Prisma.SortOrder
@@ -404,11 +486,17 @@ export type ReviewPublicationMinOrderByAggregateInput = {
   reviewRunId?: Prisma.SortOrder
   githubReviewId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  reviewEvent?: Prisma.SortOrder
+  commentsCount?: Prisma.SortOrder
   requestKey?: Prisma.SortOrder
   body?: Prisma.SortOrder
   submittedAt?: Prisma.SortOrder
   error?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type ReviewPublicationSumOrderByAggregateInput = {
+  commentsCount?: Prisma.SortOrder
 }
 
 export type ReviewPublicationCreateNestedManyWithoutReviewRunInput = {
@@ -457,6 +545,8 @@ export type ReviewPublicationCreateWithoutReviewRunInput = {
   id?: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -468,6 +558,8 @@ export type ReviewPublicationUncheckedCreateWithoutReviewRunInput = {
   id?: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -509,6 +601,8 @@ export type ReviewPublicationScalarWhereInput = {
   reviewRunId?: Prisma.StringFilter<"ReviewPublication"> | string
   githubReviewId?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   status?: Prisma.StringFilter<"ReviewPublication"> | string
+  reviewEvent?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
+  commentsCount?: Prisma.IntFilter<"ReviewPublication"> | number
   requestKey?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   body?: Prisma.StringNullableFilter<"ReviewPublication"> | string | null
   submittedAt?: Prisma.DateTimeNullableFilter<"ReviewPublication"> | Date | string | null
@@ -520,6 +614,8 @@ export type ReviewPublicationCreateManyReviewRunInput = {
   id?: string
   githubReviewId?: string | null
   status: string
+  reviewEvent?: string | null
+  commentsCount?: number
   requestKey?: string | null
   body?: string | null
   submittedAt?: Date | string | null
@@ -531,6 +627,8 @@ export type ReviewPublicationUpdateWithoutReviewRunInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -542,6 +640,8 @@ export type ReviewPublicationUncheckedUpdateWithoutReviewRunInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -553,6 +653,8 @@ export type ReviewPublicationUncheckedUpdateManyWithoutReviewRunInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   githubReviewId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewEvent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  commentsCount?: Prisma.IntFieldUpdateOperationsInput | number
   requestKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   body?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -567,6 +669,8 @@ export type ReviewPublicationSelect<ExtArgs extends runtime.Types.Extensions.Int
   reviewRunId?: boolean
   githubReviewId?: boolean
   status?: boolean
+  reviewEvent?: boolean
+  commentsCount?: boolean
   requestKey?: boolean
   body?: boolean
   submittedAt?: boolean
@@ -580,6 +684,8 @@ export type ReviewPublicationSelectCreateManyAndReturn<ExtArgs extends runtime.T
   reviewRunId?: boolean
   githubReviewId?: boolean
   status?: boolean
+  reviewEvent?: boolean
+  commentsCount?: boolean
   requestKey?: boolean
   body?: boolean
   submittedAt?: boolean
@@ -593,6 +699,8 @@ export type ReviewPublicationSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   reviewRunId?: boolean
   githubReviewId?: boolean
   status?: boolean
+  reviewEvent?: boolean
+  commentsCount?: boolean
   requestKey?: boolean
   body?: boolean
   submittedAt?: boolean
@@ -606,6 +714,8 @@ export type ReviewPublicationSelectScalar = {
   reviewRunId?: boolean
   githubReviewId?: boolean
   status?: boolean
+  reviewEvent?: boolean
+  commentsCount?: boolean
   requestKey?: boolean
   body?: boolean
   submittedAt?: boolean
@@ -613,7 +723,7 @@ export type ReviewPublicationSelectScalar = {
   createdAt?: boolean
 }
 
-export type ReviewPublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "reviewRunId" | "githubReviewId" | "status" | "requestKey" | "body" | "submittedAt" | "error" | "createdAt", ExtArgs["result"]["reviewPublication"]>
+export type ReviewPublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "reviewRunId" | "githubReviewId" | "status" | "reviewEvent" | "commentsCount" | "requestKey" | "body" | "submittedAt" | "error" | "createdAt", ExtArgs["result"]["reviewPublication"]>
 export type ReviewPublicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reviewRun?: boolean | Prisma.ReviewRunDefaultArgs<ExtArgs>
 }
@@ -634,6 +744,8 @@ export type $ReviewPublicationPayload<ExtArgs extends runtime.Types.Extensions.I
     reviewRunId: string
     githubReviewId: string | null
     status: string
+    reviewEvent: string | null
+    commentsCount: number
     requestKey: string | null
     body: string | null
     submittedAt: Date | null
@@ -1067,6 +1179,8 @@ export interface ReviewPublicationFieldRefs {
   readonly reviewRunId: Prisma.FieldRef<"ReviewPublication", 'String'>
   readonly githubReviewId: Prisma.FieldRef<"ReviewPublication", 'String'>
   readonly status: Prisma.FieldRef<"ReviewPublication", 'String'>
+  readonly reviewEvent: Prisma.FieldRef<"ReviewPublication", 'String'>
+  readonly commentsCount: Prisma.FieldRef<"ReviewPublication", 'Int'>
   readonly requestKey: Prisma.FieldRef<"ReviewPublication", 'String'>
   readonly body: Prisma.FieldRef<"ReviewPublication", 'String'>
   readonly submittedAt: Prisma.FieldRef<"ReviewPublication", 'DateTime'>

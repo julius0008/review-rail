@@ -8,12 +8,14 @@ import {
   fetchPullRequestSnapshot,
   fetchRepositoryFileContent,
   generateOllamaReview,
+  publishReviewRunToGitHub,
 } from "@repo/providers";
 import {
   buildCommentCandidates,
   buildGitHubReviewPreviews,
   buildLlmReviewContextBundles,
   buildLlmReviewPrompt,
+  getFindingFingerprint,
   type LlmReviewDiagnostics,
   buildReviewSummary,
   mergeLlmFindings,
@@ -79,6 +81,50 @@ async function pruneTerminalRuns(repoId: string, status: ReviewRunStage) {
   }
 }
 
+async function maybeAutoPublishReviewRun(reviewRunId: string) {
+  const config = getAppConfig();
+
+  if (!config.reviewRail.autoPublish) {
+    return;
+  }
+
+  try {
+    const result = await publishReviewRunToGitHub({
+      reviewRunId,
+      trigger: "auto",
+    });
+
+    if (result.ok && !result.skipped) {
+      logEvent("worker.review-run", "info", "Auto-published GitHub review", {
+        reviewRunId,
+        event: result.event,
+        commentsPublished: result.commentsPublished,
+        reviewOutcome: result.reviewOutcome,
+      });
+      return;
+    }
+
+    if (result.ok && result.skipped) {
+      logEvent("worker.review-run", "info", "Auto-publish skipped", {
+        reviewRunId,
+        reason: result.reason,
+      });
+      return;
+    }
+
+    logEvent("worker.review-run", "warn", "Auto-publish failed", {
+      reviewRunId,
+      error: result.error,
+      status: result.status,
+    });
+  } catch (error) {
+    logEvent("worker.review-run", "error", "Auto-publish threw unexpectedly", {
+      reviewRunId,
+      error: error instanceof Error ? error.message : "Unknown publish error",
+    });
+  }
+}
+
 async function persistArtifacts(input: {
   reviewRunId: string;
   repoId: string;
@@ -123,9 +169,14 @@ async function persistArtifacts(input: {
               origin: finding.origin ?? "deterministic",
               ruleId: finding.ruleId ?? null,
               fingerprint:
-                typeof finding.metadata?.fingerprint === "string"
-                  ? finding.metadata.fingerprint
-                  : null,
+                finding.fingerprint ??
+                getFindingFingerprint({
+                  path: finding.path,
+                  lineStart: finding.lineStart,
+                  ruleId: finding.ruleId ?? null,
+                  title: finding.title,
+                  explanation: finding.explanation,
+                }),
               publish: false,
               publishReason:
                 typeof finding.metadata?.publishReason === "string"
@@ -392,6 +443,7 @@ export async function runReviewJob(job: ReviewJob) {
   });
 
   if (!config.llm.enabled) {
+    await maybeAutoPublishReviewRun(job.reviewRunId);
     logEvent(loggerScope, "info", "Completed deterministic review run", {
       reviewRunId: job.reviewRunId,
       findings: deterministicFindings.length,
@@ -400,6 +452,7 @@ export async function runReviewJob(job: ReviewJob) {
   }
 
   if (bundles.length === 0) {
+    await maybeAutoPublishReviewRun(job.reviewRunId);
     return;
   }
 
@@ -494,6 +547,7 @@ export async function runReviewJob(job: ReviewJob) {
       llmError: null,
       llmMetadata,
     });
+    await maybeAutoPublishReviewRun(job.reviewRunId);
 
     logEvent(loggerScope, "info", "Completed LLM review augmentation", {
       reviewRunId: job.reviewRunId,
@@ -516,6 +570,7 @@ export async function runReviewJob(job: ReviewJob) {
       } as Prisma.InputJsonValue,
     });
     await pruneTerminalRuns(job.repoId, deterministicArtifacts.status);
+    await maybeAutoPublishReviewRun(job.reviewRunId);
 
     logEvent(loggerScope, "warn", "LLM augmentation failed; deterministic review preserved", {
       reviewRunId: job.reviewRunId,

@@ -1,6 +1,5 @@
 import { prisma } from "@repo/db";
 import { emitAfterRunUpdate, getReviewQueue } from "@repo/queue";
-import { redirect } from "next/navigation";
 import { getAppConfig } from "@repo/shared";
 
 export async function POST() {
@@ -35,5 +34,9 @@ export async function POST() {
     }
   );
 
-  redirect("/");
+  return Response.json({
+    ok: true,
+    queued: true,
+    reviewRunId: run.id,
+  });
 }

@@ -11,6 +11,8 @@ logEvent("web.start", "info", "Starting web service", {
   port,
   llmEnabled: config.llm.enabled,
   llmProvider: config.llm.provider,
+  autoPublish: config.reviewRail.autoPublish,
+  blockingMode: config.reviewRail.blockingMode,
 });
 
 if (config.llm.enabled) {
