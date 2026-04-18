@@ -16,6 +16,8 @@ RUN corepack enable
 
 FROM base AS deps
 
+ENV NODE_ENV=development
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/worker/package.json apps/worker/package.json
@@ -26,9 +28,11 @@ COPY packages/providers/package.json packages/providers/package.json
 COPY packages/analysis/package.json packages/analysis/package.json
 COPY packages/review/package.json packages/review/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 FROM base AS builder
+
+ENV NODE_ENV=development
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
