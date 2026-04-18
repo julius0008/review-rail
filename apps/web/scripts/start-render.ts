@@ -35,9 +35,12 @@ if (config.llm.enabled) {
   );
 }
 
+const workspaceRoot = process.cwd();
+const appRoot = path.resolve(workspaceRoot, "apps/web");
+
 const nextBinaryCandidates = [
-  path.resolve(process.cwd(), "node_modules/.bin/next"),
-  path.resolve(process.cwd(), "apps/web/node_modules/.bin/next"),
+  path.resolve(appRoot, "node_modules/.bin/next"),
+  path.resolve(workspaceRoot, "node_modules/.bin/next"),
 ];
 const nextBinary =
   nextBinaryCandidates.find((candidate) => existsSync(candidate)) ??
@@ -47,6 +50,7 @@ const child = spawn(
   nextBinary,
   ["start", "--hostname", "0.0.0.0", "--port", port],
   {
+    cwd: appRoot,
     env: process.env,
     stdio: "inherit",
   }
@@ -65,6 +69,7 @@ child.on("error", (error) => {
   logEvent("web.start", "error", "Failed to launch Next.js server", {
     error: error.message,
     nextBinary,
+    appRoot,
   });
   process.exit(1);
 });
