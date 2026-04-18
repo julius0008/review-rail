@@ -186,6 +186,7 @@ export function DashboardLive({ initialSnapshot }: Props) {
               <Link
                 key={run.id}
                 href={getReviewRunPath(run.id)}
+                prefetch={false}
                 className={`block rounded-3xl border border-white/10 bg-slate-950/60 p-5 transition hover:border-cyan-300/30 hover:bg-slate-950/80 ${
                   highlightedRunIds.includes(run.id) ? "run-row-highlight" : ""
                 }`}

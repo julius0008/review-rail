@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReviewRunDetailDto } from "@/lib/review-run-types";
 import {
   buildFindingsByPath,
@@ -45,6 +45,7 @@ type Props = {
 };
 
 export function ReviewRunDetailLive({ initialSnapshot }: Props) {
+  const router = useRouter();
   const { data: run, connectionState } = useLiveSnapshot({
     initialData: initialSnapshot,
     fetchUrl: `/api/review-runs/${initialSnapshot.id}`,
@@ -87,9 +88,20 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
         <div className="glass-panel rounded-[2rem] px-7 py-8">
           <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <Link href="/" className="text-sm text-zinc-400 transition hover:text-zinc-200">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    router.back();
+                    return;
+                  }
+
+                  router.push("/");
+                }}
+                className="text-sm text-zinc-400 transition hover:text-zinc-200"
+              >
                 ← Back to dashboard
-              </Link>
+              </button>
 
               <p className="mt-4 text-sm uppercase tracking-[0.24em] text-zinc-400">
                 Review Run
