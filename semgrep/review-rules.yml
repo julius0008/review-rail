@@ -1,0 +1,29 @@
+rules:
+  - id: no-eval
+    message: Avoid eval(); it can execute arbitrary code and is risky in application code.
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern: eval(...)
+
+  - id: no-child-process-exec
+    message: Avoid child_process.exec(); prefer safer alternatives or strict input validation.
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: child_process.exec(...)
+      - pattern: $CP.exec(...)
+
+  - id: no-insecure-random
+    message: Math.random() is not suitable for security-sensitive randomness.
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: Math.random()
+
+  - id: no-json-parse-direct-request-body
+    message: Parsing raw request input directly can be risky without validation. Validate structure before use.
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern-either:
+      - pattern: JSON.parse($REQ.body)
+      - pattern: JSON.parse($RAW)

@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GithubInstallation {
+  githubInstallationId Int      @id
+  accountLogin         String
+  accountType          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  reviewRuns           ReviewRun[]
+}
+
+model WebhookDelivery {
+  githubDeliveryId String   @id
+  event            String
+  action           String?
+  payload          Json?
+  receivedAt       DateTime @default(now())
+}
+
+model ReviewRun {
+  id                   String   @id @default(cuid())
+  provider             String   @default("github")
+  repoId               String
+  prNumber             Int
+  headSha              String
+  baseSha              String?
+  title                String?
+  summary              String?
+  status               String
+  llmStatus            String   @default("disabled")
+  publishState         String   @default("idle")
+  error                String?
+  llmError             String?
+  llmSummary           String?
+  llmMetadata          Json?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  publishedAt          DateTime?
+  githubInstallationId Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  installation      GithubInstallation?     @relation(fields: [githubInstallationId], references: [githubInstallationId])
+  files             ChangedFile[]
+  findings          ReviewFinding[]
+  commentCandidates ReviewCommentCandidate[]
+  commentPreviews   ReviewCommentPreview[]
+  publications ReviewPublication[]
+
+  @@unique([repoId, prNumber, headSha])
+  @@index([createdAt])
+}
+
+model ChangedFile {
+  id          String   @id @default(cuid())
+  reviewRunId String
+  path        String
+  status      String
+  additions   Int
+  deletions   Int
+  changes     Int
+  patch       String?
+  createdAt   DateTime @default(now())
+
+  reviewRun ReviewRun @relation(fields: [reviewRunId], references: [id], onDelete: Cascade)
+
+  @@index([reviewRunId])
+}
+
+model ReviewFinding {
+  id            String   @id @default(cuid())
+  reviewRunId   String
+  path          String
+  lineStart     Int
+  lineEnd       Int?
+  category      String
+  severity      String
+  confidence    Float
+  title         String
+  explanation   String
+  actionableFix String?
+  source        String
+  origin        String   @default("deterministic")
+  ruleId        String?
+  fingerprint   String?
+  publish       Boolean  @default(false)
+  publishReason String?
+  suppressionReason String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  reviewRun ReviewRun @relation(fields: [reviewRunId], references: [id], onDelete: Cascade)
+
+  @@index([reviewRunId])
+  @@index([path])
+}
+
+model ReviewCommentCandidate {
+  id            String   @id @default(cuid())
+  reviewRunId   String
+  findingId     String?
+  findingFingerprint String?
+  path          String
+  lineStart     Int
+  lineEnd       Int?
+  body          String
+  severity      String
+  source        String
+  isPublishable Boolean  @default(false)
+  reason        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  reviewRun ReviewRun @relation(fields: [reviewRunId], references: [id], onDelete: Cascade)
+
+  @@index([reviewRunId])
+  @@index([path])
+}
+
+model ReviewCommentPreview {
+  id          String   @id @default(cuid())
+  reviewRunId String
+  candidateId String?
+  path        String
+  body        String
+  line        Int?
+  side        String?
+  startLine   Int?
+  startSide   String?
+  commitId    String?
+  isValid     Boolean  @default(false)
+  skipReason  String?
+  payloadJson Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  reviewRun ReviewRun @relation(fields: [reviewRunId], references: [id], onDelete: Cascade)
+
+  @@index([reviewRunId])
+}
+
+model ReviewPublication {
+  id              String   @id @default(cuid())
+  reviewRunId     String
+  githubReviewId  String?
+  status          String
+  requestKey      String?
+  body            String?
+  submittedAt     DateTime?
+  error           String?
+  createdAt       DateTime @default(now())
+
+  reviewRun ReviewRun @relation(fields: [reviewRunId], references: [id], onDelete: Cascade)
+
+  @@index([reviewRunId])
+  @@unique([reviewRunId, requestKey])
+}

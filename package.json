@@ -1,0 +1,30 @@
+{
+  "name": "ai-code-reviewer",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:worker": "pnpm --filter worker dev",
+    "build": "pnpm -r build",
+    "test": "node --import tsx --test packages/review/src/*.test.ts",
+    "typecheck": "pnpm -r typecheck",
+    "build:deploy": "pnpm --filter @repo/db exec prisma generate --schema prisma/schema.prisma && pnpm --filter web build",
+    "migrate:deploy": "pnpm --filter @repo/db exec prisma migrate deploy --schema prisma/schema.prisma",
+    "start:web:prod": "pnpm --filter web start:prod",
+    "start:worker:prod": "pnpm --filter worker start:prod",
+    "render:build": "pnpm --filter @repo/db exec prisma generate --schema prisma/schema.prisma && pnpm --filter web build",
+    "render:migrate": "pnpm --filter @repo/db exec prisma migrate deploy --schema prisma/schema.prisma",
+    "render:start:web": "pnpm --filter web start:render",
+    "render:start:worker": "pnpm --filter worker start:render",
+    "prod:build": "docker compose -f docker-compose.prod.yml build",
+    "prod:migrate": "docker compose -f docker-compose.prod.yml --profile ops run --rm migrate",
+    "prod:up": "docker compose -f docker-compose.prod.yml up -d postgres redis web worker caddy",
+    "prod:logs": "docker compose -f docker-compose.prod.yml logs -f web worker"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.9",
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

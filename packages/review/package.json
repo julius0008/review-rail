@@ -1,0 +1,11 @@
+{
+  "name": "@repo/review",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@repo/shared": "workspace:*",
+    "zod": "^3.24.2"
+  }
+}

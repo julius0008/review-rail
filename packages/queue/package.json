@@ -1,0 +1,13 @@
+{
+  "name": "@repo/queue",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "bullmq": "^5.56.0",
+    "ioredis": "^5.4.1"
+  }
+}

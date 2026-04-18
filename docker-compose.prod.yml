@@ -1,0 +1,105 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-review-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: ai_reviewer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_reviewer"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-review-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      [
+        "pnpm",
+        "--filter",
+        "@repo/db",
+        "exec",
+        "prisma",
+        "migrate",
+        "deploy",
+        "--schema",
+        "prisma/schema.prisma"
+      ]
+    profiles: ["ops"]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-review-web
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "3000"
+    command: ["pnpm", "--filter", "web", "start"]
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-review-worker
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["pnpm", "--filter", "worker", "exec", "tsx", "src/index.ts"]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ai-review-caddy
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
