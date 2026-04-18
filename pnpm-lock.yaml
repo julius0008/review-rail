@@ -157,6 +157,9 @@ importers:
 
   packages/queue:
     dependencies:
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../db
       '@repo/shared':
         specifier: workspace:*
         version: link:../shared
