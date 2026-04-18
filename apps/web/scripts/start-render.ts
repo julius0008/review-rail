@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { getAppConfig, logEvent } from "@repo/shared";
 
@@ -34,7 +35,13 @@ if (config.llm.enabled) {
   );
 }
 
-const nextBinary = path.resolve(process.cwd(), "node_modules/.bin/next");
+const nextBinaryCandidates = [
+  path.resolve(process.cwd(), "node_modules/.bin/next"),
+  path.resolve(process.cwd(), "apps/web/node_modules/.bin/next"),
+];
+const nextBinary =
+  nextBinaryCandidates.find((candidate) => existsSync(candidate)) ??
+  nextBinaryCandidates[0];
 
 const child = spawn(
   nextBinary,
@@ -57,6 +64,7 @@ child.on("exit", (code, signal) => {
 child.on("error", (error) => {
   logEvent("web.start", "error", "Failed to launch Next.js server", {
     error: error.message,
+    nextBinary,
   });
   process.exit(1);
 });
