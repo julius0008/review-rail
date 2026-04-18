@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardRunsSnapshot } from "@/lib/review-run-types";
 import {
@@ -36,6 +37,7 @@ type Props = {
 };
 
 export function DashboardLive({ initialSnapshot }: Props) {
+  const router = useRouter();
   const { data, connectionState } = useLiveSnapshot({
     initialData: initialSnapshot,
     fetchUrl: "/api/review-runs",
@@ -187,6 +189,12 @@ export function DashboardLive({ initialSnapshot }: Props) {
                 key={run.id}
                 href={getReviewRunPath(run.id)}
                 prefetch={false}
+                onMouseEnter={() => {
+                  router.prefetch(getReviewRunPath(run.id));
+                }}
+                onFocus={() => {
+                  router.prefetch(getReviewRunPath(run.id));
+                }}
                 className={`block rounded-3xl border border-white/10 bg-slate-950/60 p-5 transition hover:border-cyan-300/30 hover:bg-slate-950/80 ${
                   highlightedRunIds.includes(run.id) ? "run-row-highlight" : ""
                 }`}
