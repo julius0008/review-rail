@@ -95,12 +95,11 @@ export function DashboardLive({ initialSnapshot }: Props) {
   return (
     <ObserverShell
       eyebrow="Observer workspace"
-      title="Active review intelligence"
+      title="Current review"
       description={
         <>
-          Observer writes the routine review back into GitHub, then keeps the deeper context here:
-          why merge is blocked, what actually got posted, what GitHub could not anchor, and how
-          this run changed from the previous one.
+          Start in GitHub for the routine conversation. Open Observer when you need the merge
+          decision, the exact publication context, and the change-tracking behind the latest run.
         </>
       }
       connectionState={connectionState}
@@ -142,15 +141,6 @@ export function DashboardLive({ initialSnapshot }: Props) {
                     <PublishPill state={currentRun.publishState} />
                     <LlmPill status={currentRun.llmStatus} />
                   </div>
-
-                  <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-300">
-                    {currentRun.mergeBlockReason ??
-                      (currentRun.reviewOutcome === "clean"
-                        ? "Observer does not see merge-blocking issues in the latest run."
-                        : currentRun.reviewOutcome === "comment_only"
-                          ? "Observer found follow-up items worth reading, but they are not strong enough to block merge."
-                          : currentRun.error ?? "Observer is still processing this run.")}
-                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
@@ -171,40 +161,73 @@ export function DashboardLive({ initialSnapshot }: Props) {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-4">
-                <div className="observer-subtle-panel rounded-2xl p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Blocking
+              <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_300px]">
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Merge decision
                   </div>
-                  <div className="mt-3 text-3xl font-semibold text-white">
-                    {blockingFindingsCount}
+                  <div className="mt-3 text-xl font-semibold text-white">
+                    {currentRun.reviewOutcome === "blocking"
+                      ? "Observer is blocking merge"
+                      : currentRun.reviewOutcome === "comment_only"
+                        ? "Observer has follow-up notes"
+                        : currentRun.reviewOutcome === "clean"
+                          ? "Observer is clear to merge"
+                          : currentRun.reviewOutcome === "failed"
+                            ? "Observer could not finish this run"
+                            : "Observer is still processing this run"}
                   </div>
-                  <div className="mt-1 text-sm text-slate-400">Findings driving merge policy</div>
+                  <p className="mt-3 text-sm leading-7 text-slate-300">
+                    {currentRun.mergeBlockReason ??
+                      (currentRun.reviewOutcome === "clean"
+                        ? "No merge-blocking findings remain in the latest run."
+                        : currentRun.reviewOutcome === "comment_only"
+                          ? "The latest review contains useful follow-up items, but they are not strong enough to block the pull request."
+                          : currentRun.error ??
+                            "The run is still in progress, so Observer has not made its final merge recommendation yet.")}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {blockingFindingsCount} blocking finding
+                      {blockingFindingsCount === 1 ? "" : "s"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {publishedComments} published comment
+                      {publishedComments === 1 ? "" : "s"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      Updated {formatDateTime(currentRun.updatedAt)}
+                    </span>
+                  </div>
                 </div>
-                <div className="observer-subtle-panel rounded-2xl p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Published
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    What to do next
                   </div>
-                  <div className="mt-3 text-3xl font-semibold text-white">{publishedComments}</div>
-                  <div className="mt-1 text-sm text-slate-400">Inline comments sent to GitHub</div>
-                </div>
-                <div className="observer-subtle-panel rounded-2xl p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Suppressed
+                  <div className="mt-3 space-y-3 text-sm leading-7 text-slate-300">
+                    {currentRun.reviewOutcome === "blocking" ? (
+                      <>
+                        <p>Fix the highest-priority findings below first.</p>
+                        <p>Push a new commit and Observer will rerun automatically.</p>
+                      </>
+                    ) : currentRun.reviewOutcome === "comment_only" ? (
+                      <>
+                        <p>Use the GitHub comments for quick cleanup.</p>
+                        <p>Open the full run when you need suppressed findings or anchor failures.</p>
+                      </>
+                    ) : currentRun.reviewOutcome === "clean" ? (
+                      <>
+                        <p>The latest run is clean from Observer’s perspective.</p>
+                        <p>Only open the full run if you want the publication history or comparison trail.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Wait for the pipeline to finish, then refresh if the state looks stale.</p>
+                        <p>Open the full run if you need the detailed job timeline.</p>
+                      </>
+                    )}
                   </div>
-                  <div className="mt-3 text-3xl font-semibold text-white">
-                    {suppressedCandidates}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-400">Held back from PR noise</div>
-                </div>
-                <div className="observer-subtle-panel rounded-2xl p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Invalid anchors
-                  </div>
-                  <div className="mt-3 text-3xl font-semibold text-white">
-                    {invalidPreviews}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-400">Comments GitHub could not place</div>
                 </div>
               </div>
 
@@ -214,8 +237,8 @@ export function DashboardLive({ initialSnapshot }: Props) {
                     <div>
                       <div className="text-sm font-medium text-white">What changed since the last run</div>
                       <div className="mt-1 text-sm text-slate-400">
-                        Useful when the PR comments alone do not tell you whether the branch is
-                        trending in the right direction.
+                        This is the quickest way to tell whether the latest push actually improved
+                        the pull request.
                       </div>
                     </div>
                     <div className="grid min-w-full gap-3 sm:min-w-[360px] sm:grid-cols-3">
@@ -251,9 +274,9 @@ export function DashboardLive({ initialSnapshot }: Props) {
               <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-white">Top findings right now</div>
+                    <div className="text-sm font-medium text-white">What to look at first</div>
                     <div className="mt-1 text-sm text-slate-400">
-                      The short list worth reading before you open the full run.
+                      The short list worth reading before you open the full run details.
                     </div>
                   </div>
                 </div>
@@ -313,11 +336,15 @@ export function DashboardLive({ initialSnapshot }: Props) {
                       {currentRun.lastPublication.status}
                     </div>
                     <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                        Last published
-                      </div>
-                      <div className="mt-2 text-sm text-slate-300">
-                        {formatDateTime(currentRun.lastPublication.createdAt)}
+                      <div className="space-y-3 text-sm text-slate-300">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-400">Last published</span>
+                          <span>{formatDateTime(currentRun.lastPublication.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-400">GitHub review</span>
+                          <span>{formatReviewEventLabel(currentRun.lastPublication.reviewEvent)}</span>
+                        </div>
                       </div>
                       {currentRun.lastPublication.error ? (
                         <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
@@ -335,17 +362,29 @@ export function DashboardLive({ initialSnapshot }: Props) {
               </div>
 
               <div className="observer-panel rounded-[1.75rem] p-6">
-                <div className="observer-kicker">Why open Observer</div>
-                <div className="mt-4 space-y-3 text-sm text-slate-300">
+                <div className="observer-kicker">Observer context</div>
+                <div className="mt-4 space-y-4 text-sm text-slate-300">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    See the exact merge-block reason instead of inferring it from scattered inline
-                    comments.
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-400">Published to GitHub</span>
+                      <span className="font-medium text-white">{publishedComments}</span>
+                    </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    Separate published findings from suppressed or unanchorable ones.
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-400">Suppressed for noise control</span>
+                      <span className="font-medium text-white">{suppressedCandidates}</span>
+                    </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    Track whether the latest push resolved real issues or just moved them around.
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-400">Anchors GitHub could not place</span>
+                      <span className="font-medium text-white">{invalidPreviews}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-dashed border-white/10 p-4 text-slate-400">
+                    Open the full run when the PR thread alone is not enough to explain the
+                    verdict, skipped comments, or run-to-run trend.
                   </div>
                 </div>
               </div>
@@ -358,8 +397,8 @@ export function DashboardLive({ initialSnapshot }: Props) {
                 <div className="observer-kicker">Recent history</div>
                 <h3 className="mt-3 text-xl font-semibold text-white">Past runs at a glance</h3>
                 <div className="mt-1 text-sm text-slate-400">
-                  Enough history to understand trend and publication behavior without turning the
-                  homepage into an operations dashboard.
+                  Enough history to see the recent story without turning the homepage into an
+                  operations dashboard.
                 </div>
               </div>
             </div>

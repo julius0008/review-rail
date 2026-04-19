@@ -127,6 +127,55 @@ function buildMetricsTable(rows: Array<[string, string | number]>) {
   ].join("\n");
 }
 
+function findingSortRank(severity: string) {
+  if (severity === "high") return 0;
+  if (severity === "medium") return 1;
+  return 2;
+}
+
+function getIssueLabel(finding: FindingRecord) {
+  const rawTitle = finding.title?.trim() || finding.ruleId?.trim() || "Review finding";
+  return rawTitle.replace(/\s+/g, " ");
+}
+
+function buildPriorityIssueSection(
+  findings: FindingRecord[],
+  options?: {
+    limit?: number;
+    heading?: string;
+    emptyHeading?: string;
+    emptyBody?: string;
+  }
+) {
+  const limit = options?.limit ?? 3;
+  const heading = options?.heading ?? "### Highest-priority issues";
+  const emptyHeading = options?.emptyHeading ?? "### Highest-priority issues";
+  const emptyBody =
+    options?.emptyBody ??
+    "No inline issue list was needed for this review. Observer did not find anything worth surfacing above the summary.";
+  const selected = [...findings]
+    .sort((a, b) => {
+      const severityDiff = findingSortRank(a.severity) - findingSortRank(b.severity);
+      if (severityDiff !== 0) return severityDiff;
+      if (a.path !== b.path) return a.path.localeCompare(b.path);
+      if (a.lineStart !== b.lineStart) return a.lineStart - b.lineStart;
+      return getIssueLabel(a).localeCompare(getIssueLabel(b));
+    })
+    .slice(0, limit);
+
+  if (selected.length === 0) {
+    return [emptyHeading, emptyBody];
+  }
+
+  return [
+    heading,
+    ...selected.map((finding, index) => {
+      const location = `${finding.path}:${finding.lineStart}`;
+      return `${index + 1}. \`${location}\` - ${getIssueLabel(finding)}`;
+    }),
+  ];
+}
+
 function buildInlineCommentLine(totalComments: number, commentOnly = false) {
   if (totalComments > 0) {
     return `Posted ${totalComments} inline comment${totalComments === 1 ? "" : "s"} from the highest-signal findings.`;
@@ -141,11 +190,14 @@ function buildInlineCommentLine(totalComments: number, commentOnly = false) {
 
 function buildDeltaSection(delta?: ReviewFindingDelta | null) {
   if (!delta) {
-    return [];
+    return [
+      "### What changed in this run",
+      "- No previous run is available for comparison yet.",
+    ];
   }
 
   return [
-    "### Change Since Previous Run",
+    "### What changed in this run",
     `- Resolved findings: ${delta.resolvedFindings}`,
     `- New findings: ${delta.newFindings}`,
     `- Persistent findings: ${delta.persistentFindings}`,
@@ -171,15 +223,21 @@ function buildBlockingBody(input: {
   return [
     "## Observer Review",
     "",
-    `**Verdict:** Request changes`,
-    `**PR:** ${input.repoId} #${input.prNumber}`,
-    `**Reason:** ${input.blockingReason}`,
+    "### Verdict",
+    `Request changes. ${input.blockingReason}`,
     "",
     "### Summary",
     summary,
     "",
-    "### Review Snapshot",
+    ...buildDeltaSection(input.delta),
+    "",
+    ...buildPriorityIssueSection(input.findings, {
+      heading: "### Highest-priority issues",
+    }),
+    "",
+    "### Review snapshot",
     buildMetricsTable([
+      ["PR", `${input.repoId} #${input.prNumber}`],
       ["Blocking findings", input.blockingCount],
       ["High severity", severity.high],
       ["Medium severity", severity.medium],
@@ -188,11 +246,11 @@ function buildBlockingBody(input: {
       ["Model-assisted signals", sourceCounts.llm],
     ]),
     "",
-    ...buildDeltaSection(input.delta),
-    ...(input.delta ? [""] : []),
-    "### Next Step",
+    "### Suggested next steps",
     buildInlineCommentLine(input.commentsCount),
-    "Address the blocking comments first. Observer will clear its own previous block with an approval review when a later run no longer sees merge-blocking findings.",
+    "- Fix the blocking findings above.",
+    "- Push a new commit to trigger a fresh run.",
+    "- Observer will clear its own previous block with an approval review when a later run no longer sees merge-blocking findings.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -215,15 +273,21 @@ function buildCommentBody(input: {
   return [
     "## Observer Review",
     "",
-    `**Verdict:** Comment only`,
-    `**PR:** ${input.repoId} #${input.prNumber}`,
-    "**Merge impact:** Observer is not blocking this pull request.",
+    "### Verdict",
+    "Comment only. Observer found follow-up items, but they are not strong enough to block merge.",
     "",
     "### Summary",
     summary,
     "",
-    "### Review Snapshot",
+    ...buildDeltaSection(input.delta),
+    "",
+    ...buildPriorityIssueSection(input.findings, {
+      heading: "### Highest-priority issues",
+    }),
+    "",
+    "### Review snapshot",
     buildMetricsTable([
+      ["PR", `${input.repoId} #${input.prNumber}`],
       ["Total findings", input.findings.length],
       ["High severity", severity.high],
       ["Medium severity", severity.medium],
@@ -232,11 +296,10 @@ function buildCommentBody(input: {
       ["Model-assisted signals", sourceCounts.llm],
     ]),
     "",
-    ...buildDeltaSection(input.delta),
-    ...(input.delta ? [""] : []),
-    "### Next Step",
+    "### Suggested next steps",
     buildInlineCommentLine(input.commentsCount, true),
-    "Use the GitHub comments for quick fixes. Use Observer if you need the suppressed findings, skipped anchors, or run-to-run comparison.",
+    "- Use the GitHub comments for quick fixes.",
+    "- Open Observer if you need the suppressed findings, skipped anchors, or run-to-run comparison.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -265,15 +328,23 @@ function buildApproveBody(input: {
   return [
     "## Observer Review",
     "",
-    `**Verdict:** Approve`,
-    `**PR:** ${input.repoId} #${input.prNumber}`,
-    `**Reason:** ${reviewLine}`,
+    "### Verdict",
+    "Approve. Observer no longer sees merge-blocking findings in this run.",
     "",
     "### Summary",
     summary,
     "",
-    "### Review Snapshot",
+    ...buildDeltaSection(input.delta),
+    "",
+    ...buildPriorityIssueSection(input.findings, {
+      heading: "### Remaining follow-up items",
+      emptyHeading: "### Remaining follow-up items",
+      emptyBody: "No follow-up items remain in this run.",
+    }),
+    "",
+    "### Review snapshot",
     buildMetricsTable([
+      ["PR", `${input.repoId} #${input.prNumber}`],
       ["Remaining findings", input.findings.length],
       ["High severity", severity.high],
       ["Medium severity", severity.medium],
@@ -281,7 +352,11 @@ function buildApproveBody(input: {
       ["Model-assisted signals", sourceCounts.llm],
     ]),
     "",
-    ...buildDeltaSection(input.delta),
+    "### Suggested next steps",
+    reviewLine,
+    input.reviewOutcome === "clean"
+      ? "- Merge once the rest of your required checks are green."
+      : "- Merge is unblocked, but you can still use Observer for the remaining non-blocking follow-up items.",
   ]
     .filter(Boolean)
     .join("\n");

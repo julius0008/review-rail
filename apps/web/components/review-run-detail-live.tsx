@@ -12,6 +12,7 @@ import {
   formatRuleLabel,
   formatSourceLabel,
   getDisplayFindingTitle,
+  getTopFindings,
   llmStatusClass,
   publicationStatusClass,
   publishStateClass,
@@ -101,6 +102,8 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
       blockingFindingKeys.has(finding.id) ||
       (finding.fingerprint ? blockingFindingKeys.has(finding.fingerprint) : false)
   );
+  const topPriorityFindings =
+    blockingFindings.length > 0 ? blockingFindings.slice(0, 5) : getTopFindings(run.findings);
   const remainingFindings = run.findings.filter(
     (finding) =>
       !blockingFindingKeys.has(finding.id) &&
@@ -213,9 +216,9 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                 </div>
 
                 <div className="mt-5 max-w-3xl text-sm leading-7 text-slate-300">
-                  Observer published the concise review back to GitHub. This page keeps the pieces
-                  the PR thread does not explain well: the exact review body, suppressed findings,
-                  invalid anchors, and publication history.
+                  Observer already handled the routine PR review in GitHub. This page keeps the
+                  deeper story: why this verdict happened, what got published, what was skipped,
+                  and what changed since the previous run.
                 </div>
               </div>
 
@@ -245,51 +248,140 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 md:grid-cols-4">
-              <div className="observer-subtle-panel rounded-2xl p-4">
+            <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_320px]">
+              <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5">
                 <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Blocking
+                  Why Observer chose this review
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
-                  {blockingFindings.length}
+                <div className="mt-3 text-xl font-semibold text-white">
+                  {run.reviewOutcome === "blocking"
+                    ? "Merge is blocked by Observer"
+                    : run.reviewOutcome === "comment_only"
+                      ? "Observer published follow-up notes only"
+                      : run.reviewOutcome === "clean"
+                        ? "Observer is clear to merge"
+                        : run.reviewOutcome === "failed"
+                          ? "Observer could not finish the review"
+                          : "Observer is still processing this run"}
                 </div>
-                <div className="mt-1 text-sm text-slate-400">Findings currently gating merge</div>
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  {run.mergeBlockReason ??
+                    (run.reviewOutcome === "clean"
+                      ? "No merge-blocking findings remain in this run."
+                      : run.reviewOutcome === "comment_only"
+                        ? "Observer still has useful follow-up items, but they are not strong enough to block merge."
+                        : run.error ?? summary)}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                    {blockingFindings.length} blocking
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                    {run.lastPublication?.commentsCount ?? publishedPreviews.length} published
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                    {suppressedCandidates.length} suppressed
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                    {skippedPreviews.length} invalid anchors
+                  </span>
+                </div>
               </div>
-              <div className="observer-subtle-panel rounded-2xl p-4">
+
+              <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5">
                 <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Published
+                  What to do next
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
-                  {run.lastPublication?.commentsCount ?? publishedPreviews.length}
+                <div className="mt-3 space-y-3 text-sm leading-7 text-slate-300">
+                  {run.reviewOutcome === "blocking" ? (
+                    <>
+                      <p>Fix the highest-priority findings first.</p>
+                      <p>Push a new commit to trigger an automatic rerun.</p>
+                    </>
+                  ) : run.reviewOutcome === "comment_only" ? (
+                    <>
+                      <p>Use the PR comments for the quick fixes.</p>
+                      <p>Use this page for the suppressed findings and skipped anchors.</p>
+                    </>
+                  ) : run.reviewOutcome === "clean" ? (
+                    <>
+                      <p>Observer has cleared its review for this run.</p>
+                      <p>Only stay here if you want the publication trail or run comparison.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>Watch the live state or retry publishing if this run has already completed.</p>
+                      <p>Open the technical details if the failure reason is not obvious.</p>
+                    </>
+                  )}
                 </div>
-                <div className="mt-1 text-sm text-slate-400">Inline comments visible in GitHub</div>
-              </div>
-              <div className="observer-subtle-panel rounded-2xl p-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Suppressed
-                </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
-                  {suppressedCandidates.length}
-                </div>
-                <div className="mt-1 text-sm text-slate-400">Candidates Observer kept quiet</div>
-              </div>
-              <div className="observer-subtle-panel rounded-2xl p-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Invalid anchors
-                </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
-                  {skippedPreviews.length}
-                </div>
-                <div className="mt-1 text-sm text-slate-400">Comments GitHub could not place</div>
               </div>
             </div>
           </section>
 
           <section className="observer-panel rounded-[1.75rem] p-6">
-            <div className="observer-kicker">GitHub review summary</div>
+            <div className="observer-kicker">Priority issues</div>
+            <h2 className="mt-3 text-xl font-semibold text-white">What should get fixed first</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              These are the issues most likely to explain the current verdict.
+            </p>
+
+            {topPriorityFindings.length > 0 ? (
+              <div className="mt-5 space-y-3">
+                {topPriorityFindings.map((finding) => (
+                  <div key={finding.id} className={findingCardClass(finding.severity)}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-white">
+                          {getDisplayFindingTitle(
+                            finding.title,
+                            finding.ruleId,
+                            finding.explanation
+                          )}{" "}
+                          · {finding.path}:{finding.lineStart}
+                        </div>
+                        <div className="mt-2 text-sm leading-7 text-slate-200">
+                          {finding.explanation}
+                        </div>
+                        {finding.actionableFix ? (
+                          <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 px-3 py-2 text-sm text-slate-300">
+                            Suggested fix: {finding.actionableFix}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${severityBadgeClass(
+                            finding.severity
+                          )}`}
+                        >
+                          {finding.severity}
+                        </span>
+                        <span className="rounded-full bg-white/5 px-2 py-1 text-xs uppercase tracking-wide text-slate-300">
+                          {formatSourceLabel(finding.source)}
+                        </span>
+                        {finding.ruleId ? (
+                          <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-300">
+                            {formatRuleLabel(finding.ruleId)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[1.25rem] border border-dashed border-white/10 p-6 text-sm text-slate-400">
+                No priority findings remain in this run.
+              </div>
+            )}
+          </section>
+
+          <section className="observer-panel rounded-[1.75rem] p-6">
+            <div className="observer-kicker">Published to GitHub</div>
             <h2 className="mt-3 text-xl font-semibold text-white">What Observer posted</h2>
             <p className="mt-2 text-sm text-slate-400">
-              This is the structured review body attached to the GitHub review event for this run.
+              This is the exact review body attached to the GitHub review event for this run.
             </p>
 
             {run.lastPublication?.body ? (
@@ -339,6 +431,43 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
               </div>
             )}
           </section>
+
+          {run.delta ? (
+            <section className="observer-panel rounded-[1.75rem] p-6">
+              <div className="observer-kicker">Change since previous run</div>
+              <h2 className="mt-3 text-xl font-semibold text-white">What changed this time</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Use this section to see whether the latest push resolved issues or just moved them.
+              </p>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-emerald-100/80">
+                    Resolved
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {run.delta.resolvedFindings}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-amber-100/80">
+                    New
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {run.delta.newFindings}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Persistent
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {run.delta.persistentFindings}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <section className="observer-panel rounded-[1.75rem] p-6">
             <div className="observer-kicker">Findings by file</div>
@@ -598,34 +727,6 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                   ) : null}
                 </div>
               </div>
-
-              {run.delta ? (
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Delta from previous run
-                  </div>
-                  <div className="mt-3 grid gap-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Resolved</span>
-                      <span className="font-semibold text-emerald-200">
-                        {run.delta.resolvedFindings}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>New</span>
-                      <span className="font-semibold text-amber-200">
-                        {run.delta.newFindings}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Persistent</span>
-                      <span className="font-semibold text-white">
-                        {run.delta.persistentFindings}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </section>
 
