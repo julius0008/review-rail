@@ -121,6 +121,12 @@ const envSchema = z.object({
   DEBUG_LLM_UI: z.string().optional(),
   REVIEW_RAIL_AUTO_PUBLISH: z.string().optional(),
   REVIEW_RAIL_BLOCKING_MODE: z.string().optional(),
+  REVIEW_MAX_ANALYZED_FILES: z.string().optional(),
+  REVIEW_MAX_CHANGED_LINES: z.string().optional(),
+  REVIEW_ANALYSIS_BATCH_SIZE: z.string().optional(),
+  REVIEW_WORKER_LOCK_DURATION_MS: z.string().optional(),
+  REVIEW_WORKER_STALLED_INTERVAL_MS: z.string().optional(),
+  REVIEW_WORKER_MAX_STALLED_COUNT: z.string().optional(),
 });
 
 export type AppConfig = {
@@ -154,6 +160,19 @@ export type AppConfig = {
   reviewRail: {
     autoPublish: boolean;
     blockingMode: "high_signal";
+    analysis: {
+      maxAnalyzedFiles: number;
+      maxChangedLines: number;
+      batchSize: number;
+    };
+    worker: {
+      lockDurationMs: number;
+      stalledIntervalMs: number;
+      maxStalledCount: number;
+    };
+  };
+  redis: {
+    useTls: boolean;
   };
 };
 
@@ -220,6 +239,30 @@ export function getAppConfig(): AppConfig {
     reviewRail: {
       autoPublish: parseBoolean(env.REVIEW_RAIL_AUTO_PUBLISH, true),
       blockingMode: "high_signal",
+      analysis: {
+        maxAnalyzedFiles: parseNumber(env.REVIEW_MAX_ANALYZED_FILES, 40),
+        maxChangedLines: parseNumber(env.REVIEW_MAX_CHANGED_LINES, 2500),
+        batchSize: parseNumber(env.REVIEW_ANALYSIS_BATCH_SIZE, 10),
+      },
+      worker: {
+        lockDurationMs: parseNumber(env.REVIEW_WORKER_LOCK_DURATION_MS, 180_000),
+        stalledIntervalMs: parseNumber(
+          env.REVIEW_WORKER_STALLED_INTERVAL_MS,
+          60_000
+        ),
+        maxStalledCount: parseNumber(env.REVIEW_WORKER_MAX_STALLED_COUNT, 2),
+      },
+    },
+    redis: {
+      useTls:
+        (() => {
+          try {
+            const redisUrl = new URL(env.REDIS_URL);
+            return redisUrl.protocol === "rediss:" || redisUrl.hostname.endsWith(".upstash.io");
+          } catch {
+            return false;
+          }
+        })(),
     },
   };
 

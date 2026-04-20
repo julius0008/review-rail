@@ -146,6 +146,10 @@ Important:
 - `APP_URL` is required in production deployments
 - `REVIEW_RAIL_AUTO_PUBLISH=true` enables automatic PR review publishing
 - `REVIEW_RAIL_BLOCKING_MODE=high_signal` keeps merge blocking limited to high-signal findings
+- `REVIEW_MAX_ANALYZED_FILES=40` caps deterministic file coverage for very large PRs
+- `REVIEW_MAX_CHANGED_LINES=2500` caps deterministic changed-line coverage for very large PRs
+- `REVIEW_ANALYSIS_BATCH_SIZE=10` keeps fetch and analysis work chunked so the worker can yield between batches
+- `REVIEW_WORKER_LOCK_DURATION_MS=180000`, `REVIEW_WORKER_STALLED_INTERVAL_MS=60000`, and `REVIEW_WORKER_MAX_STALLED_COUNT=2` harden BullMQ for long-running PR jobs
 
 ### 4. Run database setup
 
@@ -198,8 +202,11 @@ If Ollama is unavailable, the app still works. The run keeps its deterministic f
 - `LLM_ENABLED` is supported as a deployment-friendly alias for `ENABLE_LLM_REVIEW`
 - Keep `REVIEW_RAIL_AUTO_PUBLISH=true` unless you explicitly want preview-only behavior
 - `REVIEW_RAIL_BLOCKING_MODE` currently supports `high_signal`
+- Large pull requests are soft-capped by deterministic review budgets so the worker can finish reliably instead of stalling
+- Partial reviews are clearly disclosed in GitHub and the UI, and they never auto-approve or clear a prior block
 - Keep `DEBUG_LLM_UI=false` in production so raw LLM responses and parse details stay out of the normal operator UI
 - Web and worker both need the same GitHub App credentials, database URL, and Redis URL
+- For Upstash, use the TLS connection string or equivalent TLS-enabled Redis configuration for both web and worker
 - `docker-compose.prod.yml` includes Postgres, Redis, web, worker, and Caddy
 - `apps/web/next.config.ts` pins Turbopack workspace root to the repo root to reduce lockfile-root ambiguity
 - Recent history is intentionally capped to the latest 12 terminal review runs per repo

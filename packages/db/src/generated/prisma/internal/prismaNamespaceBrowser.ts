@@ -113,6 +113,7 @@ export const ReviewRunScalarFieldEnum = {
   llmError: 'llmError',
   llmSummary: 'llmSummary',
   llmMetadata: 'llmMetadata',
+  runMetadata: 'runMetadata',
   startedAt: 'startedAt',
   completedAt: 'completedAt',
   publishedAt: 'publishedAt',

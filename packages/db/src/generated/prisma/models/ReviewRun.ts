@@ -98,6 +98,7 @@ export type ReviewRunCountAggregateOutputType = {
   llmError: number
   llmSummary: number
   llmMetadata: number
+  runMetadata: number
   startedAt: number
   completedAt: number
   publishedAt: number
@@ -180,6 +181,7 @@ export type ReviewRunCountAggregateInputType = {
   llmError?: true
   llmSummary?: true
   llmMetadata?: true
+  runMetadata?: true
   startedAt?: true
   completedAt?: true
   publishedAt?: true
@@ -291,6 +293,7 @@ export type ReviewRunGroupByOutputType = {
   llmError: string | null
   llmSummary: string | null
   llmMetadata: runtime.JsonValue | null
+  runMetadata: runtime.JsonValue | null
   startedAt: Date | null
   completedAt: Date | null
   publishedAt: Date | null
@@ -338,6 +341,7 @@ export type ReviewRunWhereInput = {
   llmError?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmSummary?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
+  runMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
   startedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
@@ -368,6 +372,7 @@ export type ReviewRunOrderByWithRelationInput = {
   llmError?: Prisma.SortOrderInput | Prisma.SortOrder
   llmSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   llmMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  runMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -402,6 +407,7 @@ export type ReviewRunWhereUniqueInput = Prisma.AtLeast<{
   llmError?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmSummary?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
+  runMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
   startedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
@@ -432,6 +438,7 @@ export type ReviewRunOrderByWithAggregationInput = {
   llmError?: Prisma.SortOrderInput | Prisma.SortOrder
   llmSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   llmMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  runMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -464,6 +471,7 @@ export type ReviewRunScalarWhereWithAggregatesInput = {
   llmError?: Prisma.StringNullableWithAggregatesFilter<"ReviewRun"> | string | null
   llmSummary?: Prisma.StringNullableWithAggregatesFilter<"ReviewRun"> | string | null
   llmMetadata?: Prisma.JsonNullableWithAggregatesFilter<"ReviewRun">
+  runMetadata?: Prisma.JsonNullableWithAggregatesFilter<"ReviewRun">
   startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ReviewRun"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ReviewRun"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ReviewRun"> | Date | string | null
@@ -488,6 +496,7 @@ export type ReviewRunCreateInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -517,6 +526,7 @@ export type ReviewRunUncheckedCreateInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -546,6 +556,7 @@ export type ReviewRunUpdateInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -575,6 +586,7 @@ export type ReviewRunUncheckedUpdateInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -604,6 +616,7 @@ export type ReviewRunCreateManyInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -628,6 +641,7 @@ export type ReviewRunUpdateManyMutationInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -651,6 +665,7 @@ export type ReviewRunUncheckedUpdateManyInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -691,6 +706,7 @@ export type ReviewRunCountOrderByAggregateInput = {
   llmError?: Prisma.SortOrder
   llmSummary?: Prisma.SortOrder
   llmMetadata?: Prisma.SortOrder
+  runMetadata?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
@@ -900,6 +916,7 @@ export type ReviewRunCreateWithoutInstallationInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -928,6 +945,7 @@ export type ReviewRunUncheckedCreateWithoutInstallationInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -985,6 +1003,7 @@ export type ReviewRunScalarWhereInput = {
   llmError?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmSummary?: Prisma.StringNullableFilter<"ReviewRun"> | string | null
   llmMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
+  runMetadata?: Prisma.JsonNullableFilter<"ReviewRun">
   startedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"ReviewRun"> | Date | string | null
@@ -1009,6 +1028,7 @@ export type ReviewRunCreateWithoutFilesInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1037,6 +1057,7 @@ export type ReviewRunUncheckedCreateWithoutFilesInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1081,6 +1102,7 @@ export type ReviewRunUpdateWithoutFilesInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1109,6 +1131,7 @@ export type ReviewRunUncheckedUpdateWithoutFilesInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1137,6 +1160,7 @@ export type ReviewRunCreateWithoutFindingsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1165,6 +1189,7 @@ export type ReviewRunUncheckedCreateWithoutFindingsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1209,6 +1234,7 @@ export type ReviewRunUpdateWithoutFindingsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1237,6 +1263,7 @@ export type ReviewRunUncheckedUpdateWithoutFindingsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1265,6 +1292,7 @@ export type ReviewRunCreateWithoutCommentCandidatesInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1293,6 +1321,7 @@ export type ReviewRunUncheckedCreateWithoutCommentCandidatesInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1337,6 +1366,7 @@ export type ReviewRunUpdateWithoutCommentCandidatesInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1365,6 +1395,7 @@ export type ReviewRunUncheckedUpdateWithoutCommentCandidatesInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1393,6 +1424,7 @@ export type ReviewRunCreateWithoutCommentPreviewsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1421,6 +1453,7 @@ export type ReviewRunUncheckedCreateWithoutCommentPreviewsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1465,6 +1498,7 @@ export type ReviewRunUpdateWithoutCommentPreviewsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1493,6 +1527,7 @@ export type ReviewRunUncheckedUpdateWithoutCommentPreviewsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1521,6 +1556,7 @@ export type ReviewRunCreateWithoutPublicationsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1549,6 +1585,7 @@ export type ReviewRunUncheckedCreateWithoutPublicationsInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1593,6 +1630,7 @@ export type ReviewRunUpdateWithoutPublicationsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1621,6 +1659,7 @@ export type ReviewRunUncheckedUpdateWithoutPublicationsInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1649,6 +1688,7 @@ export type ReviewRunCreateManyInstallationInput = {
   llmError?: string | null
   llmSummary?: string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Date | string | null
   completedAt?: Date | string | null
   publishedAt?: Date | string | null
@@ -1672,6 +1712,7 @@ export type ReviewRunUpdateWithoutInstallationInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1700,6 +1741,7 @@ export type ReviewRunUncheckedUpdateWithoutInstallationInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1728,6 +1770,7 @@ export type ReviewRunUncheckedUpdateManyWithoutInstallationInput = {
   llmError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   llmMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  runMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1818,6 +1861,7 @@ export type ReviewRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   llmError?: boolean
   llmSummary?: boolean
   llmMetadata?: boolean
+  runMetadata?: boolean
   startedAt?: boolean
   completedAt?: boolean
   publishedAt?: boolean
@@ -1849,6 +1893,7 @@ export type ReviewRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   llmError?: boolean
   llmSummary?: boolean
   llmMetadata?: boolean
+  runMetadata?: boolean
   startedAt?: boolean
   completedAt?: boolean
   publishedAt?: boolean
@@ -1874,6 +1919,7 @@ export type ReviewRunSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   llmError?: boolean
   llmSummary?: boolean
   llmMetadata?: boolean
+  runMetadata?: boolean
   startedAt?: boolean
   completedAt?: boolean
   publishedAt?: boolean
@@ -1899,6 +1945,7 @@ export type ReviewRunSelectScalar = {
   llmError?: boolean
   llmSummary?: boolean
   llmMetadata?: boolean
+  runMetadata?: boolean
   startedAt?: boolean
   completedAt?: boolean
   publishedAt?: boolean
@@ -1907,7 +1954,7 @@ export type ReviewRunSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ReviewRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "provider" | "repoId" | "prNumber" | "headSha" | "baseSha" | "title" | "summary" | "status" | "llmStatus" | "publishState" | "error" | "llmError" | "llmSummary" | "llmMetadata" | "startedAt" | "completedAt" | "publishedAt" | "githubInstallationId" | "createdAt" | "updatedAt", ExtArgs["result"]["reviewRun"]>
+export type ReviewRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "provider" | "repoId" | "prNumber" | "headSha" | "baseSha" | "title" | "summary" | "status" | "llmStatus" | "publishState" | "error" | "llmError" | "llmSummary" | "llmMetadata" | "runMetadata" | "startedAt" | "completedAt" | "publishedAt" | "githubInstallationId" | "createdAt" | "updatedAt", ExtArgs["result"]["reviewRun"]>
 export type ReviewRunInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   installation?: boolean | Prisma.ReviewRun$installationArgs<ExtArgs>
   files?: boolean | Prisma.ReviewRun$filesArgs<ExtArgs>
@@ -1950,6 +1997,7 @@ export type $ReviewRunPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     llmError: string | null
     llmSummary: string | null
     llmMetadata: runtime.JsonValue | null
+    runMetadata: runtime.JsonValue | null
     startedAt: Date | null
     completedAt: Date | null
     publishedAt: Date | null
@@ -2400,6 +2448,7 @@ export interface ReviewRunFieldRefs {
   readonly llmError: Prisma.FieldRef<"ReviewRun", 'String'>
   readonly llmSummary: Prisma.FieldRef<"ReviewRun", 'String'>
   readonly llmMetadata: Prisma.FieldRef<"ReviewRun", 'Json'>
+  readonly runMetadata: Prisma.FieldRef<"ReviewRun", 'Json'>
   readonly startedAt: Prisma.FieldRef<"ReviewRun", 'DateTime'>
   readonly completedAt: Prisma.FieldRef<"ReviewRun", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"ReviewRun", 'DateTime'>

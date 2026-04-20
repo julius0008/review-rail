@@ -1,0 +1,2 @@
+ALTER TABLE "ReviewRun"
+ADD COLUMN IF NOT EXISTS "runMetadata" JSONB;

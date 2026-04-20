@@ -1,3 +1,7 @@
+import {
+  buildCoverageSummary,
+  type ReviewRunCoverage,
+} from "./coverage";
 import { getFindingFingerprint } from "./postprocess";
 
 export type ReviewRailEvent = "COMMENT" | "REQUEST_CHANGES" | "APPROVE";
@@ -60,6 +64,7 @@ export type ReviewFindingDelta = {
 export type ReviewPublicationPlan = {
   reviewOutcome: ReviewRailOutcome;
   blockingReason: string | null;
+  coverageSummary: string | null;
   shouldPublish: boolean;
   event: ReviewRailEvent | null;
   body: string | null;
@@ -75,6 +80,7 @@ export type ReviewPublicationPlan = {
   decisionReason:
     | "blocking_findings"
     | "non_blocking_findings"
+    | "partial_review"
     | "prior_block_cleared"
     | "no_review_needed";
 };
@@ -204,6 +210,34 @@ function buildDeltaSection(delta?: ReviewFindingDelta | null) {
   ];
 }
 
+function buildCoverageSection(coverage?: ReviewRunCoverage | null) {
+  if (!coverage) {
+    return [];
+  }
+
+  const summary = buildCoverageSummary(coverage);
+
+  if (coverage.mode === "full") {
+    return [
+      "### Coverage",
+      summary,
+    ];
+  }
+
+  const reasonLabel =
+    coverage.reason === "file_budget"
+      ? "file budget"
+      : coverage.reason === "line_budget"
+        ? "changed-line budget"
+        : "reliability budget";
+
+  return [
+    "### Coverage",
+    summary,
+    `Observer is treating this as a partial review because it hit the ${reasonLabel}.`,
+  ];
+}
+
 function buildBlockingBody(input: {
   repoId: string;
   prNumber: number;
@@ -213,6 +247,7 @@ function buildBlockingBody(input: {
   blockingCount: number;
   commentsCount: number;
   delta?: ReviewFindingDelta | null;
+  coverage?: ReviewRunCoverage | null;
 }) {
   const summary =
     input.summary?.trim() ||
@@ -228,6 +263,8 @@ function buildBlockingBody(input: {
     "",
     "### Summary",
     summary,
+    "",
+    ...buildCoverageSection(input.coverage),
     "",
     ...buildDeltaSection(input.delta),
     "",
@@ -263,6 +300,7 @@ function buildCommentBody(input: {
   findings: FindingRecord[];
   commentsCount: number;
   delta?: ReviewFindingDelta | null;
+  coverage?: ReviewRunCoverage | null;
 }) {
   const summary =
     input.summary?.trim() ||
@@ -278,6 +316,8 @@ function buildCommentBody(input: {
     "",
     "### Summary",
     summary,
+    "",
+    ...buildCoverageSection(input.coverage),
     "",
     ...buildDeltaSection(input.delta),
     "",
@@ -312,6 +352,7 @@ function buildApproveBody(input: {
   reviewOutcome: Extract<ReviewRailOutcome, "clean" | "comment_only">;
   findings: FindingRecord[];
   delta?: ReviewFindingDelta | null;
+  coverage?: ReviewRunCoverage | null;
 }) {
   const reviewLine =
     input.reviewOutcome === "clean"
@@ -333,6 +374,8 @@ function buildApproveBody(input: {
     "",
     "### Summary",
     summary,
+    "",
+    ...buildCoverageSection(input.coverage),
     "",
     ...buildDeltaSection(input.delta),
     "",
@@ -450,6 +493,7 @@ export function deriveReviewOutcome(input: {
   publishState?: string;
   findings: FindingRecord[];
   commentCandidates: CommentCandidateRecord[];
+  coverageMode?: ReviewRunCoverage["mode"] | null;
 }): ReviewRailOutcome {
   if (input.status === "failed" || input.publishState === "failed") {
     return "failed";
@@ -461,6 +505,10 @@ export function deriveReviewOutcome(input: {
 
   if (getBlockingReviewCandidates(input.commentCandidates).length > 0) {
     return "blocking";
+  }
+
+  if (input.coverageMode === "partial") {
+    return "comment_only";
   }
 
   if (input.findings.length > 0 || input.commentCandidates.length > 0) {
@@ -542,13 +590,16 @@ export function buildReviewPublicationPlan(input: {
   commentPreviews: PreviewRecord[];
   latestPublishedReviewEvent?: string | null;
   delta?: ReviewFindingDelta | null;
+  coverage?: ReviewRunCoverage | null;
 }): ReviewPublicationPlan {
   const reviewOutcome = deriveReviewOutcome({
     status: "completed",
     findings: input.findings,
     commentCandidates: input.commentCandidates,
+    coverageMode: input.coverage?.mode ?? null,
   });
   const blockingReason = buildMergeBlockReason(input.commentCandidates);
+  const coverageSummary = input.coverage ? buildCoverageSummary(input.coverage) : null;
   const selectedPreviews = selectPublishablePreviewRecords(input.commentPreviews, 5);
   const comments = selectPublishableReviewComments(input.commentPreviews, 5);
   const selectedPreviewIds = selectedPreviews.flatMap((preview) =>
@@ -556,11 +607,13 @@ export function buildReviewPublicationPlan(input: {
   );
   const priorReviewBlocksMerge =
     input.latestPublishedReviewEvent === "REQUEST_CHANGES";
+  const isPartialReview = input.coverage?.mode === "partial";
 
   if (reviewOutcome === "blocking") {
     return {
       reviewOutcome,
       blockingReason,
+      coverageSummary,
       shouldPublish: true,
       event: "REQUEST_CHANGES",
       body: buildBlockingBody({
@@ -572,6 +625,7 @@ export function buildReviewPublicationPlan(input: {
         blockingCount: getBlockingReviewCandidates(input.commentCandidates).length,
         commentsCount: comments.length,
         delta: input.delta,
+        coverage: input.coverage,
       }),
       comments,
       selectedPreviewIds,
@@ -579,10 +633,35 @@ export function buildReviewPublicationPlan(input: {
     };
   }
 
+  if (isPartialReview) {
+    return {
+      reviewOutcome,
+      blockingReason,
+      coverageSummary,
+      shouldPublish: true,
+      event: "COMMENT",
+      body: buildCommentBody({
+        repoId: input.repoId,
+        prNumber: input.prNumber,
+        summary:
+          input.summary ??
+          "Observer completed a partial review for this run. It is surfacing what it saw, but it is not clearing any prior block because coverage was incomplete.",
+        findings: input.findings,
+        commentsCount: comments.length,
+        delta: input.delta,
+        coverage: input.coverage,
+      }),
+      comments,
+      selectedPreviewIds,
+      decisionReason: "partial_review",
+    };
+  }
+
   if (priorReviewBlocksMerge && (reviewOutcome === "comment_only" || reviewOutcome === "clean")) {
     return {
       reviewOutcome,
       blockingReason,
+      coverageSummary,
       shouldPublish: true,
       event: "APPROVE",
       body: buildApproveBody({
@@ -592,6 +671,7 @@ export function buildReviewPublicationPlan(input: {
         reviewOutcome,
         findings: input.findings,
         delta: input.delta,
+        coverage: input.coverage,
       }),
       comments: [],
       selectedPreviewIds: [],
@@ -603,6 +683,7 @@ export function buildReviewPublicationPlan(input: {
     return {
       reviewOutcome,
       blockingReason,
+      coverageSummary,
       shouldPublish: true,
       event: "COMMENT",
       body: buildCommentBody({
@@ -612,6 +693,7 @@ export function buildReviewPublicationPlan(input: {
         findings: input.findings,
         commentsCount: comments.length,
         delta: input.delta,
+        coverage: input.coverage,
       }),
       comments,
       selectedPreviewIds,
@@ -622,6 +704,7 @@ export function buildReviewPublicationPlan(input: {
   return {
     reviewOutcome,
     blockingReason,
+    coverageSummary,
     shouldPublish: false,
     event: null,
     body: null,

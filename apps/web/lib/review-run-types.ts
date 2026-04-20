@@ -1,3 +1,24 @@
+export type ReviewCoverageMode = "full" | "partial";
+
+export type ReviewCoverageDto = {
+  mode: ReviewCoverageMode;
+  analyzableFileCount: number;
+  analyzedFileCount: number;
+  skippedFileCount: number;
+  skippedPaths: string[];
+  reason: "file_budget" | "line_budget" | null;
+  summary: string;
+};
+
+export type ReviewTimingDto = {
+  fetchMs: number | null;
+  biomeMs: number | null;
+  semgrepMs: number | null;
+  postprocessMs: number | null;
+  publishMs: number | null;
+  totalMs: number | null;
+};
+
 export type ReviewOutcome =
   | "running"
   | "blocking"
@@ -35,6 +56,10 @@ export type DashboardHistoryRunDto = {
   publishState: string;
   reviewOutcome: ReviewOutcome;
   mergeBlockReason: string | null;
+  coverageMode: ReviewCoverageMode | null;
+  coverageSummary: string | null;
+  coverage: ReviewCoverageDto | null;
+  timingSummary: string | null;
   pullRequestUrl: string;
   createdAt: string;
   updatedAt: string;
@@ -130,6 +155,11 @@ export type ReviewRunDetailDto = {
   publishState: string;
   reviewOutcome: ReviewOutcome;
   mergeBlockReason: string | null;
+  coverageMode: ReviewCoverageMode | null;
+  coverageSummary: string | null;
+  coverage: ReviewCoverageDto | null;
+  timings: ReviewTimingDto | null;
+  timingSummary: string | null;
   pullRequestUrl: string;
   error: string | null;
   llmError: string | null;

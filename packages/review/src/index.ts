@@ -4,3 +4,4 @@ export * from "./summary";
 export * from "./github-preview";
 export * from "./publish";
 export * from "./llm";
+export * from "./coverage";

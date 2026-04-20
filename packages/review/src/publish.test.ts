@@ -179,6 +179,43 @@ test("buildReviewPublicationPlan approves after a prior blocking review is clear
   assert.equal(plan.shouldPublish, true);
 });
 
+test("buildReviewPublicationPlan keeps partial clean reruns in comment mode", () => {
+  const plan = buildReviewPublicationPlan({
+    repoId: "acme/demo",
+    prNumber: 42,
+    findings: [],
+    commentCandidates: [],
+    commentPreviews: [],
+    latestPublishedReviewEvent: "REQUEST_CHANGES",
+    coverage: {
+      mode: "partial",
+      analyzableFileCount: 73,
+      analyzedFileCount: 40,
+      skippedFileCount: 33,
+      skippedPaths: ["src/huge-41.ts"],
+      reason: "file_budget",
+    },
+  });
+
+  assert.equal(plan.reviewOutcome, "comment_only");
+  assert.equal(plan.event, "COMMENT");
+  assert.equal(plan.shouldPublish, true);
+  assert.equal(plan.decisionReason, "partial_review");
+  assert.match(plan.body ?? "", /partial review/i);
+  assert.match(plan.body ?? "", /40 of 73 analyzable files/i);
+});
+
+test("deriveReviewOutcome keeps partial clean runs in comment-only state", () => {
+  const outcome = deriveReviewOutcome({
+    status: "completed",
+    findings: [],
+    commentCandidates: [],
+    coverageMode: "partial",
+  });
+
+  assert.equal(outcome, "comment_only");
+});
+
 test("buildReviewPublicationPlan comments for non-blocking findings when no prior block exists", () => {
   const plan = buildReviewPublicationPlan({
     repoId: "acme/demo",
@@ -210,4 +247,59 @@ test("buildReviewPublicationPlan comments for non-blocking findings when no prio
   assert.equal(plan.reviewOutcome, "comment_only");
   assert.equal(plan.event, "COMMENT");
   assert.equal(plan.shouldPublish, true);
+});
+
+test("buildReviewPublicationPlan adds coverage details to blocking partial reviews", () => {
+  const plan = buildReviewPublicationPlan({
+    repoId: "acme/demo",
+    prNumber: 42,
+    findings: [
+      {
+        path: "src/demo.ts",
+        lineStart: 8,
+        severity: "high",
+        source: "semgrep",
+        title: "Avoid eval()",
+        explanation: "Avoid eval usage.",
+      },
+    ],
+    commentCandidates: [
+      {
+        id: "candidate-1",
+        path: "src/demo.ts",
+        lineStart: 8,
+        severity: "high",
+        source: "semgrep",
+        isPublishable: true,
+        reason: "publishable_high_signal",
+      },
+    ],
+    commentPreviews: [
+      {
+        id: "preview-1",
+        path: "src/demo.ts",
+        body: "test",
+        line: 8,
+        side: "RIGHT",
+        startLine: null,
+        startSide: null,
+        isValid: true,
+        skipReason: null,
+        metadata: { score: 250 },
+      },
+    ],
+    latestPublishedReviewEvent: null,
+    coverage: {
+      mode: "partial",
+      analyzableFileCount: 73,
+      analyzedFileCount: 40,
+      skippedFileCount: 33,
+      skippedPaths: ["src/huge-41.ts"],
+      reason: "file_budget",
+    },
+  });
+
+  assert.equal(plan.event, "REQUEST_CHANGES");
+  assert.match(plan.body ?? "", /40 of 73 analyzable files/i);
+  assert.match(plan.body ?? "", /file budget/i);
 });

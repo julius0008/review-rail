@@ -24,8 +24,11 @@ let sharedQueue: Queue<ReviewJob> | null = null;
 let eventPublisher: RedisClientType | null = null;
 
 function createRedisClient() {
-  return new RedisCtor(getAppConfig().redisUrl, {
+  const config = getAppConfig();
+
+  return new RedisCtor(config.redisUrl, {
     maxRetriesPerRequest: null,
+    ...(config.redis.useTls ? { tls: {} } : {}),
   }) as unknown as RedisClientType;
 }
 

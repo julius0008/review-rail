@@ -2,17 +2,21 @@ import "server-only";
 
 import { Prisma, prisma } from "@repo/db";
 import {
+  buildCoverageSummary,
   buildFindingDelta,
   buildMergeBlockReason,
   deriveReviewOutcome,
+  parseReviewRunMetadata,
   selectPublishablePreviewRecords,
 } from "@repo/review";
 import { getAppConfig } from "@repo/shared";
 import type {
   DashboardHistoryRunDto,
   DashboardRunsSnapshot,
+  ReviewCoverageDto,
   ReviewPublicationSummaryDto,
   ReviewRunDetailDto,
+  ReviewTimingDto,
 } from "./review-run-types";
 
 function toIsoString(value: Date | null | undefined) {
@@ -21,6 +25,46 @@ function toIsoString(value: Date | null | undefined) {
 
 function buildPullRequestUrl(repoId: string, prNumber: number) {
   return `https://github.com/${repoId}/pull/${prNumber}`;
+}
+
+function formatDuration(value: number | null | undefined) {
+  if (value == null) return null;
+  if (value < 1000) return `${value} ms`;
+  if (value < 10_000) return `${(value / 1000).toFixed(1)} s`;
+  return `${Math.round(value / 1000)} s`;
+}
+
+function buildTimingSummary(timings: ReviewTimingDto | null) {
+  if (!timings) return null;
+
+  const parts = [
+    timings.totalMs != null ? `Total ${formatDuration(timings.totalMs)}` : null,
+    timings.fetchMs != null ? `Fetch ${formatDuration(timings.fetchMs)}` : null,
+    timings.biomeMs != null ? `Biome ${formatDuration(timings.biomeMs)}` : null,
+    timings.semgrepMs != null ? `Semgrep ${formatDuration(timings.semgrepMs)}` : null,
+    timings.postprocessMs != null
+      ? `Postprocess ${formatDuration(timings.postprocessMs)}`
+      : null,
+    timings.publishMs != null ? `Publish ${formatDuration(timings.publishMs)}` : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function serializeCoverage(runMetadata: Prisma.JsonValue | null): ReviewCoverageDto | null {
+  const parsed = parseReviewRunMetadata(runMetadata);
+
+  if (!parsed) return null;
+
+  return {
+    ...parsed.coverage,
+    summary: buildCoverageSummary(parsed.coverage),
+  };
+}
+
+function serializeTimings(runMetadata: Prisma.JsonValue | null): ReviewTimingDto | null {
+  const parsed = parseReviewRunMetadata(runMetadata);
+  return parsed ? parsed.timings : null;
 }
 
 function sanitizeLlmMetadata(
@@ -73,15 +117,25 @@ type ReviewRunSnapshotRecord = Prisma.ReviewRunGetPayload<{
 function buildRunDerivedState(
   run: Pick<
     ReviewRunSnapshotRecord,
-    "status" | "publishState" | "repoId" | "prNumber" | "findings" | "commentCandidates" | "commentPreviews" | "publications"
+    | "status"
+    | "publishState"
+    | "repoId"
+    | "prNumber"
+    | "findings"
+    | "commentCandidates"
+    | "commentPreviews"
+    | "publications"
+    | "runMetadata"
   >,
   previousFindings: ReviewRunSnapshotRecord["findings"] = []
 ) {
+  const coverage = serializeCoverage(run.runMetadata);
   const reviewOutcome = deriveReviewOutcome({
     status: run.status,
     publishState: run.publishState,
     findings: run.findings,
     commentCandidates: run.commentCandidates,
+    coverageMode: coverage?.mode ?? null,
   });
   const mergeBlockReason = buildMergeBlockReason(run.commentCandidates);
   const lastPublication = run.publications[0] ? serializePublication(run.publications[0]) : null;
@@ -117,6 +171,8 @@ function serializeReviewRun(
 ): ReviewRunDetailDto {
   const config = getAppConfig();
   const derived = buildRunDerivedState(run, previousFindings);
+  const coverage = serializeCoverage(run.runMetadata);
+  const timings = serializeTimings(run.runMetadata);
 
   return {
     id: run.id,
@@ -131,6 +187,11 @@ function serializeReviewRun(
     publishState: run.publishState,
     reviewOutcome: derived.reviewOutcome,
     mergeBlockReason: derived.mergeBlockReason,
+    coverageMode: coverage?.mode ?? null,
+    coverageSummary: coverage?.summary ?? null,
+    coverage,
+    timings,
+    timingSummary: buildTimingSummary(timings),
     pullRequestUrl: buildPullRequestUrl(run.repoId, run.prNumber),
     error: run.error ?? null,
     llmError: run.llmError ?? null,
@@ -232,6 +293,28 @@ type DashboardRunRecord = Prisma.ReviewRunGetPayload<{
 }>;
 
 function serializeDashboardHistoryRun(run: DashboardRunRecord): DashboardHistoryRunDto {
+  const coverage = serializeCoverage(run.runMetadata);
+  const reviewOutcome = deriveReviewOutcome({
+    status: run.status,
+    publishState: run.publishState,
+    findings: Array.from({ length: run.findings.length }, () => ({
+      path: "",
+      lineStart: 0,
+      title: "",
+      explanation: "",
+      severity: "low",
+      source: "biome",
+    })),
+    commentCandidates: run.commentCandidates.map((candidate) => ({
+      path: "",
+      lineStart: 0,
+      severity: "low",
+      source: "biome",
+      isPublishable: candidate.isPublishable,
+      reason: candidate.reason,
+    })),
+    coverageMode: coverage?.mode ?? null,
+  });
   const blockingCount = run.commentCandidates.filter(
     (candidate) =>
       candidate.isPublishable &&
@@ -239,16 +322,7 @@ function serializeDashboardHistoryRun(run: DashboardRunRecord): DashboardHistory
         candidate.reason === "publishable_llm_high_confidence")
   ).length;
   const lastPublication = run.publications[0] ? serializePublication(run.publications[0]) : null;
-  const reviewOutcome =
-    run.status === "failed" || run.publishState === "failed"
-      ? "failed"
-      : !["publish_ready", "completed", "stale"].includes(run.status)
-        ? "running"
-        : blockingCount > 0
-          ? "blocking"
-          : run.findings.length > 0 || run.commentCandidates.length > 0
-            ? "comment_only"
-            : "clean";
+  const timings = serializeTimings(run.runMetadata);
 
   return {
     id: run.id,
@@ -264,6 +338,10 @@ function serializeDashboardHistoryRun(run: DashboardRunRecord): DashboardHistory
       blockingCount > 0
         ? `${blockingCount} high-signal finding${blockingCount === 1 ? "" : "s"} blocking merge.`
         : null,
+    coverageMode: coverage?.mode ?? null,
+    coverageSummary: coverage?.summary ?? null,
+    coverage,
+    timingSummary: buildTimingSummary(timings),
     pullRequestUrl: buildPullRequestUrl(run.repoId, run.prNumber),
     createdAt: run.createdAt.toISOString(),
     updatedAt: run.updatedAt.toISOString(),

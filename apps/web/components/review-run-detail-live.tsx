@@ -88,6 +88,7 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
   const publishedCandidates = run.commentCandidates.filter((candidate) =>
     publishedCandidateIdSet.has(candidate.id)
   );
+  const isPartialReview = run.coverageMode === "partial";
   const blockingFindingKeys = new Set(
     blockingCandidates.flatMap((candidate) =>
       candidate.findingId
@@ -158,7 +159,9 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
       title={run.title ?? "Run details"}
       description={
         run.mergeBlockReason ??
-        (run.reviewOutcome === "clean"
+        (run.reviewOutcome === "comment_only" && isPartialReview
+          ? "Observer intentionally capped coverage on this run so a large pull request could complete reliably."
+          : run.reviewOutcome === "clean"
           ? "Observer does not see merge-blocking findings in this run."
           : run.reviewOutcome === "comment_only"
             ? "Observer still has follow-up notes, but this run is not strong enough to block merge."
@@ -256,7 +259,9 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                 <div className="mt-3 text-xl font-semibold text-white">
                   {run.reviewOutcome === "blocking"
                     ? "Merge is blocked by Observer"
-                    : run.reviewOutcome === "comment_only"
+                    : run.reviewOutcome === "comment_only" && isPartialReview
+                      ? "Observer completed a partial review"
+                      : run.reviewOutcome === "comment_only"
                       ? "Observer published follow-up notes only"
                       : run.reviewOutcome === "clean"
                         ? "Observer is clear to merge"
@@ -266,7 +271,9 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
                   {run.mergeBlockReason ??
-                    (run.reviewOutcome === "clean"
+                    (run.reviewOutcome === "comment_only" && isPartialReview
+                      ? "Observer intentionally limited coverage on this run to stay reliable. It can still block on what it saw, but it will not auto-approve or clear a previous block from incomplete coverage."
+                      : run.reviewOutcome === "clean"
                       ? "No merge-blocking findings remain in this run."
                       : run.reviewOutcome === "comment_only"
                         ? "Observer still has useful follow-up items, but they are not strong enough to block merge."
@@ -300,8 +307,16 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                     </>
                   ) : run.reviewOutcome === "comment_only" ? (
                     <>
-                      <p>Use the PR comments for the quick fixes.</p>
-                      <p>Use this page for the suppressed findings and skipped anchors.</p>
+                      <p>
+                        {isPartialReview
+                          ? "Use the published review for anything Observer did find, but treat this as an incomplete pass."
+                          : "Use the PR comments for the quick fixes."}
+                      </p>
+                      <p>
+                        {isPartialReview
+                          ? "Split the PR or push a smaller follow-up commit if you want Observer to revisit the skipped files."
+                          : "Use this page for the suppressed findings and skipped anchors."}
+                      </p>
                     </>
                   ) : run.reviewOutcome === "clean" ? (
                     <>
@@ -317,6 +332,51 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                 </div>
               </div>
             </div>
+
+            {run.coverageSummary ? (
+              <div
+                className={`mt-6 rounded-[1.5rem] border p-5 ${
+                  isPartialReview
+                    ? "border-amber-500/20 bg-amber-500/10"
+                    : "border-white/10 bg-black/20"
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      isPartialReview
+                        ? "bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/30"
+                        : "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30"
+                    }`}
+                  >
+                    {isPartialReview ? "Partial review coverage" : "Full review coverage"}
+                  </span>
+                  {run.timingSummary ? (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                      {run.timingSummary}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm leading-7 text-slate-300">{run.coverageSummary}</p>
+                {run.coverage ? (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {run.coverage.analyzedFileCount} analyzed
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {run.coverage.skippedFileCount} skipped
+                    </span>
+                    {run.coverage.reason ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                        {run.coverage.reason === "file_budget"
+                          ? "file budget reached"
+                          : "changed-line budget reached"}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <section className="observer-panel rounded-[1.75rem] p-6">
@@ -698,6 +758,26 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
           <section className="observer-panel rounded-[1.75rem] p-6">
             <div className="observer-kicker">Run state</div>
             <div className="mt-4 space-y-4 text-sm text-slate-300">
+              {run.coverage ? (
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Coverage
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-white">
+                    {run.coverage.mode === "partial" ? "Partial review" : "Full review"}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-400">{run.coverage.summary}</div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {run.coverage.analyzedFileCount}/{run.coverage.analyzableFileCount} files
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      {run.coverage.skippedFileCount} skipped
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
                   Latest GitHub review
@@ -725,6 +805,7 @@ export function ReviewRunDetailLive({ initialSnapshot }: Props) {
                   {run.completedAt ? (
                     <div>Completed {formatDateTime(run.completedAt)}</div>
                   ) : null}
+                  {run.timingSummary ? <div>{run.timingSummary}</div> : null}
                 </div>
               </div>
             </div>

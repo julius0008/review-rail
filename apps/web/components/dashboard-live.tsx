@@ -91,6 +91,7 @@ export function DashboardLive({ initialSnapshot }: Props) {
     ? currentRun.commentPreviews.filter((preview) => !preview.isValid).length
     : 0;
   const publishedComments = currentRun?.lastPublication?.commentsCount ?? 0;
+  const isPartialCurrentRun = currentRun?.coverageMode === "partial";
 
   return (
     <ObserverShell
@@ -169,7 +170,9 @@ export function DashboardLive({ initialSnapshot }: Props) {
                   <div className="mt-3 text-xl font-semibold text-white">
                     {currentRun.reviewOutcome === "blocking"
                       ? "Observer is blocking merge"
-                      : currentRun.reviewOutcome === "comment_only"
+                      : currentRun.reviewOutcome === "comment_only" && isPartialCurrentRun
+                        ? "Observer completed a partial review"
+                        : currentRun.reviewOutcome === "comment_only"
                         ? "Observer has follow-up notes"
                         : currentRun.reviewOutcome === "clean"
                           ? "Observer is clear to merge"
@@ -179,7 +182,9 @@ export function DashboardLive({ initialSnapshot }: Props) {
                   </div>
                   <p className="mt-3 text-sm leading-7 text-slate-300">
                     {currentRun.mergeBlockReason ??
-                      (currentRun.reviewOutcome === "clean"
+                      (currentRun.reviewOutcome === "comment_only" && isPartialCurrentRun
+                        ? "Observer intentionally limited coverage on this run to keep the worker reliable. It is surfacing what it reviewed, but it will not clear any prior block from an incomplete pass."
+                        : currentRun.reviewOutcome === "clean"
                         ? "No merge-blocking findings remain in the latest run."
                         : currentRun.reviewOutcome === "comment_only"
                           ? "The latest review contains useful follow-up items, but they are not strong enough to block the pull request."
@@ -213,8 +218,16 @@ export function DashboardLive({ initialSnapshot }: Props) {
                       </>
                     ) : currentRun.reviewOutcome === "comment_only" ? (
                       <>
-                        <p>Use the GitHub comments for quick cleanup.</p>
-                        <p>Open the full run when you need suppressed findings or anchor failures.</p>
+                        <p>
+                          {isPartialCurrentRun
+                            ? "Treat this as an intentionally incomplete pass for a large pull request."
+                            : "Use the GitHub comments for quick cleanup."}
+                        </p>
+                        <p>
+                          {isPartialCurrentRun
+                            ? "Shrink the PR or push a focused follow-up commit if you want Observer to revisit the skipped files."
+                            : "Open the full run when you need suppressed findings or anchor failures."}
+                        </p>
                       </>
                     ) : currentRun.reviewOutcome === "clean" ? (
                       <>
@@ -230,6 +243,53 @@ export function DashboardLive({ initialSnapshot }: Props) {
                   </div>
                 </div>
               </div>
+
+              {currentRun.coverageSummary ? (
+                <div
+                  className={`mt-6 rounded-[1.5rem] border p-5 ${
+                    isPartialCurrentRun
+                      ? "border-amber-500/20 bg-amber-500/10"
+                      : "border-white/10 bg-black/20"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        isPartialCurrentRun
+                          ? "bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/30"
+                          : "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30"
+                      }`}
+                    >
+                      {isPartialCurrentRun ? "Partial coverage" : "Full coverage"}
+                    </span>
+                    {currentRun.timingSummary ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                        {currentRun.timingSummary}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-slate-300">
+                    {currentRun.coverageSummary}
+                  </p>
+                  {isPartialCurrentRun && currentRun.coverage ? (
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                        {currentRun.coverage.analyzedFileCount} analyzed
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                        {currentRun.coverage.skippedFileCount} skipped
+                      </span>
+                      {currentRun.coverage.reason ? (
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                          {currentRun.coverage.reason === "file_budget"
+                            ? "file budget reached"
+                            : "changed-line budget reached"}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {currentRun.delta ? (
                 <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
@@ -431,7 +491,7 @@ export function DashboardLive({ initialSnapshot }: Props) {
                         <div className="mt-3 text-lg font-semibold text-white">
                           {run.title ?? `Run ${run.id.slice(0, 8)}`}
                         </div>
-                        <div className="mt-2 text-sm text-slate-300">
+                      <div className="mt-2 text-sm text-slate-300">
                           {run.mergeBlockReason ??
                             (run.reviewOutcome === "comment_only"
                               ? "Follow-up items were published without blocking merge."
@@ -447,6 +507,11 @@ export function DashboardLive({ initialSnapshot }: Props) {
                         <ReviewOutcomePill outcome={run.reviewOutcome} />
                         <StatusPill status={run.status} />
                         <PublishPill state={run.publishState} />
+                        {run.coverageMode === "partial" ? (
+                          <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-100 ring-1 ring-amber-400/30">
+                            Partial coverage
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
@@ -455,13 +520,24 @@ export function DashboardLive({ initialSnapshot }: Props) {
                         <span>{run.counts.blockingFindings} blocking</span>
                         <span>{run.counts.findings} total findings</span>
                         <span>{run.counts.publishedComments} published comments</span>
+                        {run.coverage
+                          ? `${run.coverage.analyzedFileCount}/${run.coverage.analyzableFileCount} files analyzed`
+                          : null}
                         <span>Updated {formatDateTime(run.updatedAt)}</span>
                       </div>
 
-                      <div className="text-sm text-slate-400">
-                        {run.lastPublication
-                          ? `${formatReviewEventLabel(run.lastPublication.reviewEvent)} · ${run.lastPublication.status}`
-                          : "No GitHub review posted"}
+                      <div className="text-right text-sm text-slate-400">
+                        <div>
+                          {run.lastPublication
+                            ? `${formatReviewEventLabel(run.lastPublication.reviewEvent)} · ${run.lastPublication.status}`
+                            : "No GitHub review posted"}
+                        </div>
+                        {run.coverageSummary ? (
+                          <div className="mt-1 text-xs text-slate-500">{run.coverageSummary}</div>
+                        ) : null}
+                        {run.timingSummary ? (
+                          <div className="mt-1 text-xs text-slate-500">{run.timingSummary}</div>
+                        ) : null}
                       </div>
                     </div>
                   </Link>

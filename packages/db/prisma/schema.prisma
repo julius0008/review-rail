@@ -42,6 +42,7 @@ model ReviewRun {
   llmError             String?
   llmSummary           String?
   llmMetadata          Json?
+  runMetadata          Json?
   startedAt            DateTime?
   completedAt          DateTime?
   publishedAt          DateTime?

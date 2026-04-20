@@ -3,6 +3,7 @@ import { prisma } from "@repo/db";
 import { emitAfterRunUpdate } from "@repo/queue";
 import {
   buildFindingDelta,
+  parseReviewRunMetadata,
   buildReviewPublicationPlan,
   type ReviewRailEvent,
 } from "@repo/review";
@@ -176,6 +177,7 @@ export async function publishReviewRunToGitHub(input: {
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
+  const runMetadata = parseReviewRunMetadata(run.runMetadata);
 
   const plan = buildReviewPublicationPlan({
     repoId: run.repoId,
@@ -191,6 +193,7 @@ export async function publishReviewRunToGitHub(input: {
           previousFindings: previousRun.findings,
         })
       : null,
+    coverage: runMetadata?.coverage ?? null,
   });
 
   if (!plan.shouldPublish || !plan.event || !plan.body) {
@@ -281,6 +284,8 @@ export async function publishReviewRunToGitHub(input: {
       commentsCount: plan.comments.length,
       trigger,
       reviewOutcome: plan.reviewOutcome,
+      coverageMode: runMetadata?.coverage.mode ?? null,
+      coverageSummary: plan.coverageSummary,
     });
 
     return {
